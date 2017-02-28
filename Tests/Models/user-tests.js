@@ -45,7 +45,7 @@ describe("User", function () {
                 .then(user => user.name))
                 .to.eventually.equal(fields[0].name)
         })
-        
+
         it('Retrieve the other user', function () {
             return expect(
                 User
