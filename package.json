@@ -1,0 +1,23 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "Server of our project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "babel-cli": "^6.23.0",
+    "babel-plugin-source-map-support": "0.0.1",
+    "babel-preset-es2017-node7": "^0.4.2",
+    "chai": "^3.5.0",
+    "chai-as-promised": "^6.0.0",
+    "mocha": "^3.2.0"
+  },
+  "dependencies": {
+    "express": "^4.14.1",
+    "mongoose": "^4.8.5"
+  }
+}
