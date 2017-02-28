@@ -6,7 +6,7 @@ export const PORT = 8001
 
 //Add middle wares
 app.use('/test', (req, res) => {
-    res.send({message: 'Hola'})
+	res.send({message: 'Hola'})
 })
 
 //Start the http server
