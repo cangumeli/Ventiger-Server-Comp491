@@ -12,6 +12,30 @@ const chai = require('chai')
 chai.use(require('chai-as-promised'))
 const expect = chai.expect
 
+const fields = [{
+	phone: '05059309494',
+	name: 'Can Gümeli',
+
+	password: 'c01234b'
+}, {
+	phone: '1111',
+	name: 'Something Something',
+	password: 'a0123492'
+}, {
+	email: 'something@something',
+	name: 'Ata Keşfeden',
+	password: 'asdsdsd'
+}]
+
+function populateDB() {
+	return Promise.all(
+		fields.map(field => {
+			const user = new User(field)
+			user.setPassword(field.password)
+			return user.save()
+		})
+	)
+}
 
 describe("User", function () {
 	// Setup the db connection and the model
@@ -21,22 +45,7 @@ describe("User", function () {
 
 	describe("#save", function () {
 		//Populate the database
-		let fields
-		before(function () {
-			fields = [{
-				phone: '05059309494',
-				name: 'Can Gümeli'
-			}, {
-				phone: '1111',
-				name: 'Something Something'
-			}]
-			return Promise.all(
-				fields.map(field => {
-					const user = new User(field)
-					return user.save()
-				})
-			)
-		})
+		before(populateDB)
 
 		it("Retrieve the first user", function () {
 			return expect(User
@@ -56,40 +65,72 @@ describe("User", function () {
 
 		})
 
-		it('Disallow duplicate phone numbers', function (done) {
-			let user = new User(fields[0])//{phone: fields[0].name, name: fields[1].phone})
-			//Chai fails in rejections,
-			user.save((err) => {
-				expect(err).to.exist
-				done()
+		it('Phone Uniqueness', function (done) {
+			const user = new User(fields[1])
+			user.save(err => {
+				err ? done() : done('Phone uniqueness failed')
 			})
 		})
 
-		describe('After reset', function () {
-			before(function () {
-				User
-					.findOneAndRemove({phone: fields[0].phone})
+		it('Email Uniqueness', function (done) {
+			const user = new User(fields[2])
+			user.save(err => {
+				err ? done() : done('Email uniqueness failed')
+			})
+		})
+		after(function () {
+			mongoose.connection.db.dropDatabase()
+		})
+	})
+
+		describe('password', function () {
+			before(populateDB)
+
+			const passwordTest = function (index) {
+				return User
+					.findOne({phone: fields[index].phone})
 					.exec()
-			})
+					.then(user => {
+						expect(user.validPassword(fields[index].password))
+							.to.equal(true)
 
-			it('Allow save with legal credentials', function () {
-				let app = new User(fields[0])
-				return app.save()
-			})
-			it('Disallow save with illegal credentials', function (done) {
-				let app = new User(fields[0])
-				app
-					.save(err => {
-						expect(err).to.exist
-						done()
+						expect(user.validPassword(fields[index].password + 'c'))
+							.to.equal(false)
 					})
+			}
+
+			it('Correct and wrong password for the first user', function () {
+				return passwordTest(0)
+			})
+
+			it('Correct and wrong password for the second user', function () {
+				return passwordTest(1)
+			})
+
+			after(function () {
+				return mongoose.connection.db.dropDatabase()
+			})
+
+		})
+
+		describe('token', function () {
+			let user, token
+			before(function () {
+				user = new User(fields[0])
+				user.setPassword(fields[0].password)
+			})
+
+			it('sign and validate', function () {
+
+				token = user.generateToken()
+				let verified = User.verifyToken(token)
+				let actual = {}, imagined = {}
+				Object.keys(User.TOKEN_FIELDS).forEach(field => {
+					actual[field] = user[field]
+					imagined[field] = verified[field]
+				})
+				actual._id = actual._id.toString()
+				expect(imagined).to.deep.equal(actual)
 			})
 		})
-	})
-
-	after(function () {
-		return mongoose.connection.db.dropDatabase(err => {
-			console.error(err)
-		})
-	})
 })
