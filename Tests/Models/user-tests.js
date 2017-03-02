@@ -40,6 +40,10 @@ function populateDB() {
 describe("User", function () {
 	// Setup the db connection and the model
 	before(function () {
+		if (mongoose.connection.readyState == 1
+			|| mongoose.connection.readyState == 2) {
+			return
+		}
 		mongoose.connect('mongodb://localhost/VentigerTest/:27017')
 	})
 
@@ -78,59 +82,68 @@ describe("User", function () {
 				err ? done() : done('Email uniqueness failed')
 			})
 		})
+
+		it('Discriminator Type', function () {
+			return expect(User
+				.findOne({phone: fields[0].phone})
+				.exec()
+				.then(user => user._type))
+				.to.eventually.equal('User')
+		})
+
 		after(function () {
 			mongoose.connection.db.dropDatabase()
 		})
 	})
 
-		describe('password', function () {
-			before(populateDB)
+	describe('password', function () {
+		before(populateDB)
 
-			const passwordTest = function (index) {
-				return User
-					.findOne({phone: fields[index].phone})
-					.exec()
-					.then(user => {
-						expect(user.validPassword(fields[index].password))
-							.to.equal(true)
+		const passwordTest = function (index) {
+			return User
+				.findOne({phone: fields[index].phone})
+				.exec()
+				.then(user => {
+					expect(user.validPassword(fields[index].password))
+						.to.equal(true)
 
-						expect(user.validPassword(fields[index].password + 'c'))
-							.to.equal(false)
-					})
-			}
-
-			it('Correct and wrong password for the first user', function () {
-				return passwordTest(0)
-			})
-
-			it('Correct and wrong password for the second user', function () {
-				return passwordTest(1)
-			})
-
-			after(function () {
-				return mongoose.connection.db.dropDatabase()
-			})
-
-		})
-
-		describe('token', function () {
-			let user, token
-			before(function () {
-				user = new User(fields[0])
-				user.setPassword(fields[0].password)
-			})
-
-			it('sign and validate', function () {
-
-				token = user.generateToken()
-				let verified = User.verifyToken(token)
-				let actual = {}, imagined = {}
-				Object.keys(User.TOKEN_FIELDS).forEach(field => {
-					actual[field] = user[field]
-					imagined[field] = verified[field]
+					expect(user.validPassword(fields[index].password + 'c'))
+						.to.equal(false)
 				})
-				actual._id = actual._id.toString()
-				expect(imagined).to.deep.equal(actual)
-			})
+		}
+
+		it('Correct and wrong password for the first user', function () {
+			return passwordTest(0)
 		})
+
+		it('Correct and wrong password for the second user', function () {
+			return passwordTest(1)
+		})
+
+		after(function () {
+			return mongoose.connection.db.dropDatabase()
+		})
+
+	})
+
+	describe('token', function () {
+		let user, token
+		before(function () {
+			user = new User(fields[0])
+			user.setPassword(fields[0].password)
+		})
+
+		it('sign and validate', function () {
+
+			token = user.generateToken()
+			let verified = User.verifyToken(token)
+			let actual = {}, imagined = {}
+			Object.keys(User.TOKEN_FIELDS).forEach(field => {
+				actual[field] = user[field]
+				imagined[field] = verified[field]
+			})
+			actual._id = actual._id.toString()
+			expect(imagined).to.deep.equal(actual)
+		})
+	})
 })
