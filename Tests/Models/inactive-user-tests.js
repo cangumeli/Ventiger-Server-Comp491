@@ -57,7 +57,7 @@ describe("UnverifiedUser", function () {
 	})
 
 
-	/*describe('ttl', function () {
+	describe.skip('ttl', function () {
 		it('TTL should remove user', function (done) {
 			const user = new UnverifiedUser({
 				name: 'can',
@@ -81,7 +81,7 @@ describe("UnverifiedUser", function () {
 					}, 20000)
 				})
 		})
-	})*/
+	})
 	
 	describe.skip('#verify', function () {
 		global.Test.TTL = 10000000000000

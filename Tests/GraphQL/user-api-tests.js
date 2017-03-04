@@ -48,9 +48,13 @@ describe('User API Test', function () {
 				.then(user => { return {name: user.name, email: user.email} }))
 				.to.eventually.deep.equal({name: body.name, email: body.email})
 		})
+
+		// TODO: More failure tests?
+		// TODO: Make graphiql tests a story?
 	})
 
 	after(function () {
-		//return mongoose.connection.db.dropDatabase()
+		//return UnverifiedUser.remove({}, {multi: true}).exec()
+		return mongoose.connection.db.dropDatabase()
 	})
 })

@@ -3,7 +3,8 @@ import {
 	GraphQLObjectType,
 	GraphQLString,
 	GraphQLNonNull,
-	GraphQLID
+	GraphQLID,
+	GraphQLInt
 } from 'graphql'
 
 import {
@@ -17,7 +18,7 @@ export const RegistrationType = new GraphQLInputObjectType({
 		name: {type: new GraphQLNonNull(GraphQLString)},
 		phone: {type: GraphQLString},
 		email: {type: GraphQLEmail},
-		password: {type: new GraphQLPassword(6, 30)}
+		password: {type: new GraphQLNonNull( new GraphQLPassword(6, 30))}
 	}
 })
 
@@ -28,5 +29,22 @@ export const UserType = new GraphQLObjectType({
 		phone: {type: GraphQLString},
 		email: {type: GraphQLEmail},
 		_id: {type: GraphQLID}
+	}
+})
+
+export const LoginType = new GraphQLInputObjectType({
+	name: 'LoginBody',
+	fields: {
+		phone: {type: GraphQLString},
+		email: {type: GraphQLEmail},
+		password: {type: new GraphQLNonNull(new GraphQLPassword(6, 30))}
+	}
+})
+
+export const TokenType = new GraphQLObjectType({
+	name: 'AuthenticationToken',
+	fields: {
+		token: {type: GraphQLString},
+		daysToExpiry: {type: GraphQLInt}
 	}
 })

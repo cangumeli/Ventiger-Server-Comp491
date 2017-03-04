@@ -1,11 +1,14 @@
 import {
-	RegistrationType
+	RegistrationType,
+	LoginType,
+	TokenType
 } from '../Types/user-types'
 
 import AbstractUser from '../../Models/abstract-user'
 import User from '../../Models/user'
 import UnverifiedUser from '../../Models/unverified-user'
 import { IdentityTransformer } from '../../Models/identy-transformer'
+
 
 import {
 	GraphQLBoolean,
@@ -15,6 +18,8 @@ import {
 } from 'graphql'
 
 const idTransformer = new IdentityTransformer()
+//TODO: consider rule engines
+const shouldOverrideUnvalidatedRegister = true
 
 export default {
 	register: {
@@ -29,7 +34,18 @@ export default {
 			if (!args.body.phone && !args.body.email) {
 				throw new Error('MissingCredentials: email or phone')
 			}
-			const user = new UnverifiedUser(args.body)
+			let user
+			// Override logic
+			if (shouldOverrideUnvalidatedRegister) {
+				user = await UnverifiedUser
+					.findOne(args.body.phone
+						? {phone: args.body.phone}
+						: {email: args.body.email})
+					.exec()
+			}
+			if (!user) {
+				user = new UnverifiedUser(args.body)
+			}
 			user.setPassword(args.body.password)
 			// TODO: Code generation mechanism
 			const code = user.generateValidationCode()
@@ -46,7 +62,7 @@ export default {
 	},
 
 	sendValidationCode: {
-		type: GraphQLString,
+		type: TokenType,
 		args: {
 			code: {
 				name: 'code',
@@ -72,11 +88,39 @@ export default {
 			userToVerify.remove()
 			await userToVerify.save()
 			const verified = await user.save()
-			//TODO: consider backup or transaction?
+			//TODO: consider backup or transaction
 			if (!verified) {
 				throw new Error('DirtyRemove')
 			}
-			return verified.generateToken()
+			return {
+				token: verified.generateToken(),
+				daysToExpiry: AbstractUser.TOKEN_TIME_TO_EXP
+			}
 		}
-	}
+	},
+
+	login: {
+		type: TokenType,
+		args: {
+			body: {
+				name: 'body',
+				type: new GraphQLNonNull(LoginType)
+			}
+		},
+		async resolve(source, args) {
+			if (!args.body.phone && !args.body.email) {
+				throw new Error('MissingCredentials: email or phone')
+			}
+			const user = await User
+				.findOne(args.body.phone ? {phone: args.body.phone} : {email: args.body.email})
+				.exec()
+			if (!user || !user.validPassword(args.body.password)) {
+				throw new Error('Wrong User or Password')
+			}
+			return {
+				token: user.generateToken(),
+				daysToExpiry: AbstractUser.TOKEN_TIME_TO_EXP
+			}
+		}
+	},
 }

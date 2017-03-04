@@ -7,20 +7,48 @@ import {
 import {
 	GraphQLNonNull,
 	GraphQLID,
-	GraphQLObjectType
+	GraphQLBoolean,
+	GraphQLString
 } from 'graphql'
 
+import {
+	GraphQLEmail
+} from 'graphql-custom-types'
+
 export default {
-	user: {
-		type: UserType,
+	//TODO: Consider overrides in boolean queries
+	phoneExists: {
+		type: GraphQLBoolean,
 		args: {
-			_id: {
-				name: '_id',
-				type: new GraphQLNonNull(GraphQLID)
+			phone: {
+				name: 'phone',
+				type: new GraphQLNonNull(GraphQLString)
 			}
 		},
 		async resolve(source, args) {
-			return User.findById(args._id).exec()
+			const user = await User
+				.findOne({phone: args.phone})
+				.select('_id')
+				.exec()
+			return Boolean(user)
 		}
-	}
+	},
+
+	emailExists: {
+		type: GraphQLBoolean,
+		args: {
+			email: {
+				name: 'email',
+				type: new GraphQLNonNull(GraphQLEmail)
+			}
+		},
+		async resolve(source, args) {
+			const user = await User
+				.findOne({email: args.email})
+				.select('_id')
+				.exec()
+			return Boolean(user)
+		}
+	},
+
 }

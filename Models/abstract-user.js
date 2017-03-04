@@ -70,6 +70,8 @@ AbstractUserSchema.methods.generateToken = function () {
 	}, SECRET)
 }
 
+AbstractUserSchema.statics.TOKEN_TIME_TO_EXP = TIME_TO_EXP
+
 /**Returns the decrypted object,
  * @throws: whatever jwt.validate throws*/
 AbstractUserSchema.statics.verifyToken = function (token) {

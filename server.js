@@ -18,7 +18,6 @@ app.use('/api/graphql', graphqlHTTP({
 }))
 
 
-
 //Start the http server
 app.listen(PORT)
 console.log(`App is listening port ${PORT}`)
