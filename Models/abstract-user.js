@@ -1,6 +1,6 @@
 import mongoose from 'mongoose'
-import jwt from 'jsonwebtoken'
 import crypto from 'crypto'
+import jwt from 'jsonwebtoken'
 
 /**Password Model*/
 const PasswordSchema = new mongoose.Schema({
@@ -52,7 +52,6 @@ AbstractUserSchema.methods.validPassword = function(password) {
 	return this.password.isValid(password)
 }
 
-
 /*Logic for creating a jwt*/
 AbstractUserSchema.statics.TOKEN_FIELDS = {
 	_id: 1,
@@ -77,6 +76,6 @@ AbstractUserSchema.statics.verifyToken = function (token) {
 	return jwt.verify(token, SECRET)
 }
 
+const AbstractUser = mongoose.model('AbstractUser', AbstractUserSchema)
 
-export default mongoose.model('AbstractUser', AbstractUserSchema)
-
+export default AbstractUser

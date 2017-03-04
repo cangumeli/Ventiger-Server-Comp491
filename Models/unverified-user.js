@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 //import crypto from 'crypto'
+import User from './user'
 import AbstractUser from './abstract-user'
 import { ValidationCodeSchema, ValidationCode } from './_validation-code'
 
@@ -21,7 +22,6 @@ UnverifiedUserSchema.methods.generateValidationCode = function() {
 	return this.validationCode.updateCode()
 }
 
-
 /**Requires a validation code to exist*/
 UnverifiedUserSchema.methods.verify = function (code, updateFields) {
 	if (this.validationCode.isValid(code)) {
@@ -33,6 +33,14 @@ UnverifiedUserSchema.methods.verify = function (code, updateFields) {
 		return true
 	}
 	return false
+}
+UnverifiedUserSchema.methods.createUser = function () {
+	return new User({
+		name: this.name,
+		phone: this.phone,
+		password: this.password,
+		email: this.email
+	})
 }
 
 export default AbstractUser.discriminator('UnverifiedUser', UnverifiedUserSchema)

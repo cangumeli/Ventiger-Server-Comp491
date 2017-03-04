@@ -21,10 +21,7 @@ ValidationCodeSchema.methods.updateCode = function () {
 	const { hash, salt } = encryptString(validationCode)
 	this._salt = salt
 	this._hash = hash
-	// TODO: remove this in production
-	if (global.Test) {
-		return validationCode
-	}
+	return validationCode
 }
 
 

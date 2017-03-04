@@ -1,13 +1,23 @@
 import express from 'express'
 import './db'
+import graphqlHTTP from 'express-graphql'
+import schema from './GraphQL/schema'
 
 const app = express()
 export const PORT = 8001
 
 //Add middle wares
-app.use('/test', (req, res) => {
-	res.send({message: 'Hola'})
-})
+app.use('/api/graphql', graphqlHTTP({
+	schema: schema,
+	graphiql: true,
+	rootValue: {codeSender: {
+		send(code) {
+			console.log(code)
+		}}
+	}
+}))
+
+
 
 //Start the http server
 app.listen(PORT)
