@@ -42,6 +42,13 @@ export default {
 						? {phone: args.body.phone}
 						: {email: args.body.email})
 					.exec()
+				if (user) {
+					Object.keys(args.body).forEach(key => {
+						if (key != 'password') {
+							user[key] = args.body[key]
+						}
+					})
+				}
 			}
 			if (!user) {
 				user = new UnverifiedUser(args.body)
