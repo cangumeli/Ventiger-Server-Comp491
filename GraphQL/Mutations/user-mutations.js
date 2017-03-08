@@ -1,14 +1,15 @@
 import {
 	RegistrationType,
-	LoginType,
-	TokenType
+		LoginType,
+		TokenType
 } from '../Types/user-types'
 
 import AbstractUser from '../../Models/abstract-user'
 import User from '../../Models/user'
 import UnverifiedUser from '../../Models/unverified-user'
 import { IdentityTransformer } from '../../Models/identy-transformer'
-
+import bluebird from 'bluebird'
+bluebird.promisifyAll(AbstractUser.collection)
 
 import {
 	GraphQLBoolean,
@@ -90,15 +91,24 @@ export default {
 			if (!userToVerify.verify(args.code)) {
 				throw Error('WrongCode')
 			}
-			const user = userToVerify.createUser()
+			const { result } = await AbstractUser.collection.updateAsync(
+				{_id: userToVerify._id},
+				UnverifiedUser.conversionCommand
+			)
+			if (result.n != 1 ||
+				result.nModified != 1 ||
+				result.ok != 1) {
+				throw Error('Cannot convert user')
+			}
+			const verified = userToVerify.createUser()
 			// Remove the unverified
-			userToVerify.remove()
+			/*userToVerify.remove()
 			await userToVerify.save()
 			const verified = await user.save()
 			//TODO: consider backup or transaction
 			if (!verified) {
 				throw new Error('DirtyRemove')
-			}
+			}*/
 			return {
 				token: verified.generateToken(),
 				daysToExpiry: AbstractUser.TOKEN_TIME_TO_EXP

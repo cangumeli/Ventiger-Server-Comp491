@@ -43,4 +43,12 @@ UnverifiedUserSchema.methods.createUser = function () {
 	})
 }
 
+UnverifiedUserSchema.statics.conversionCommand = {
+	$set: {_type: 'User'},
+	$unset: {
+		lastGenerated: "",
+		validationCode: ""
+	}
+}
+
 export default AbstractUser.discriminator('UnverifiedUser', UnverifiedUserSchema)
