@@ -6,6 +6,9 @@ import schema from './GraphQL/schema'
 const app = express()
 export const PORT = 8001
 
+if (process.argv[2]) {
+	require('./GraphQL/updateSchema')
+}
 //Add middle wares
 app.use('/api/graphql', graphqlHTTP({
 	schema: schema,
