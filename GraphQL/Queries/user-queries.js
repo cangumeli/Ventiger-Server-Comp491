@@ -17,7 +17,7 @@ import {
 
 export default {
 	//TODO: Consider overrides in boolean queries
-	phoneExists: {
+	phoneValid: {
 		type: GraphQLBoolean,
 		args: {
 			phone: {
@@ -30,11 +30,11 @@ export default {
 				.findOne({phone: args.phone})
 				.select('_id')
 				.exec()
-			return Boolean(user)
+			return !Boolean(user)
 		}
 	},
 
-	emailExists: {
+	emailValid: {
 		type: GraphQLBoolean,
 		args: {
 			email: {
@@ -47,7 +47,7 @@ export default {
 				.findOne({email: args.email})
 				.select('_id')
 				.exec()
-			return Boolean(user)
+			return !Boolean(user)
 		}
 	},
 
