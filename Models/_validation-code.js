@@ -1,7 +1,7 @@
 import mongoose from 'mongoose'
 import crypto from 'crypto'
 
-const CODE_SIZE = 20
+const CODE_SIZE = 5
 export const ValidationCodeSchema = new mongoose.Schema({
 	_hash: {type: String, required: true},
 	_salt: {type: String, required: true}

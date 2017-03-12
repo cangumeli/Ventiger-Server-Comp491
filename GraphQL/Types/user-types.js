@@ -22,16 +22,6 @@ export const RegistrationType = new GraphQLInputObjectType({
 	}
 })
 
-export const UserType = new GraphQLObjectType({
-	name: 'User',
-	fields: {
-		name: {type: GraphQLString},
-		phone: {type: GraphQLString},
-		email: {type: GraphQLEmail},
-		_id: {type: GraphQLID}
-	}
-})
-
 export const LoginType = new GraphQLInputObjectType({
 	name: 'LoginBody',
 	fields: {
@@ -46,5 +36,15 @@ export const TokenType = new GraphQLObjectType({
 	fields: {
 		token: {type: GraphQLString},
 		daysToExpiry: {type: GraphQLInt}
+	}
+})
+
+export const ProfileType = new GraphQLObjectType({
+	name: 'Profile',
+	fields: {
+		phone: {type: GraphQLString},
+		email: {type: GraphQLEmail},
+		name: {type: GraphQLString},
+		_id: {type: GraphQLID},
 	}
 })

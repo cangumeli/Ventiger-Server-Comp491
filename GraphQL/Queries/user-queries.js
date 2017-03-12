@@ -1,7 +1,7 @@
 import User from '../../Models/user'
 
 import {
-	UserType
+	ProfileType
 } from '../Types/user-types'
 
 import {
@@ -15,7 +15,9 @@ import {
 	GraphQLEmail
 } from 'graphql-custom-types'
 
-export default {
+import { getProjection } from '../utils'
+
+export const global = {
 	//TODO: Consider overrides in boolean queries
 	phoneValid: {
 		type: GraphQLBoolean,
@@ -50,5 +52,25 @@ export default {
 			return !Boolean(user)
 		}
 	},
+}
 
+export const viewer = {
+	profile: {
+		type: ProfileType,
+		args: {
+			_id: {
+				name: '_id',
+				type: GraphQLID
+			}
+		},
+		resolve(source, args, context, info) {
+			// TODO: add friend and random profile support
+			// console.log(info.fieldNodes[0].selectionSet.selections)
+			const projection = getProjection(info.fieldNodes)
+			return User
+				.findById(args._id || source._id)
+				.select(projection)
+				.exec()
+		}
+	}
 }
