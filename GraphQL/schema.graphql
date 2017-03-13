@@ -1,0 +1,37 @@
+type AuthenticationToken {
+  token: String
+  daysToExpiry: Int
+}
+
+# The Email scalar type represents E-Mail addresses compliant to RFC 822.
+scalar Email
+
+input LoginBody {
+  phone: String
+  email: Email
+  password: Password2!
+}
+
+type Mutation {
+  register(body: RegistrationBody!): ID
+  sendValidationCode(code: String!, _id: ID!): AuthenticationToken
+  login(body: LoginBody!): AuthenticationToken
+}
+
+# A password string. Has to be between 6 and 30 characters long.
+scalar Password
+
+# A password string. Has to be between 6 and 30 characters long.
+scalar Password2
+
+type Query {
+  phoneExists(phone: String!): Boolean
+  emailExists(email: Email!): Boolean
+}
+
+input RegistrationBody {
+  name: String!
+  phone: String
+  email: Email
+  password: Password!
+}

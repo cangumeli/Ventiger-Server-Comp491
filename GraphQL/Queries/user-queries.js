@@ -67,6 +67,8 @@ export const viewer = {
 			// TODO: add friend and random profile support
 			// console.log(info.fieldNodes[0].selectionSet.selections)
 			const projection = getProjection(info.fieldNodes)
+			// console.log('source', source)
+			// console.log('args', args)
 			return User
 				.findById(args._id || source._id)
 				.select(projection)

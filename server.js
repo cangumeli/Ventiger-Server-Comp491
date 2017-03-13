@@ -10,15 +10,21 @@ if (process.argv[2]) {
 	require('./GraphQL/updateSchema')
 }
 //Add middle wares
-app.use('/api/graphql', graphqlHTTP({
-	schema: schema,
-	graphiql: true,
-	rootValue: {codeSender: {
-		send(code) {
-			console.log(code)
-		}}
-	}
-}))
+app.use('/api/graphql', (req, res, next) => {
+	// console.log(req.headers)
+	graphqlHTTP({
+		schema: schema,
+		graphiql: true,
+		rootValue: {
+			token: req.headers['authorization'],
+			codeSender: {
+				send(code) {
+					console.log(code)
+				}
+			}
+		}
+	})(req, res, next)
+})
 
 
 //Start the http server

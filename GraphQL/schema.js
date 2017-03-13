@@ -39,7 +39,7 @@ export default new GraphQLSchema({
 					}
 				}),
 				resolve: (source, args) => {
-					const verified = User.verifyToken(args.token)
+					const verified = User.verifyToken(args.token || source.token)
 					return verified
 				}
 			}
