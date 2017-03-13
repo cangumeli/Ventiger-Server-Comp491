@@ -17,7 +17,7 @@ function encryptString (passwordStr, salt) {
 }
 
 ValidationCodeSchema.methods.updateCode = function () {
-	const validationCode = crypto.randomBytes(20).toString('hex')
+	const validationCode = crypto.randomBytes(CODE_SIZE).toString('hex')
 	const { hash, salt } = encryptString(validationCode)
 	this._salt = salt
 	this._hash = hash
