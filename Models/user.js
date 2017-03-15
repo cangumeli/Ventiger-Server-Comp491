@@ -3,7 +3,10 @@ import AbstractUser from './abstract-user'
 import jwt from 'jsonwebtoken'
 
 const UserSchema = new mongoose.Schema({
-
+	friends: {
+		_ids: [mongoose.SchemaTypes.Oid],
+		payloads: mongoose.SchemaTypes.Mixed // key value pairs
+	}
 })
 /*Logic for creating a jwt*/
 UserSchema.statics.TOKEN_FIELDS = {
@@ -25,13 +28,12 @@ UserSchema.methods.generateToken = function () {
 
 UserSchema.statics.TOKEN_TIME_TO_EXP = TIME_TO_EXP
 
-
 UserSchema.methods.validPassword = function(password) {
 	return this.password.isValid(password)
 }
 
 /**Returns the decrypted object,
- * @throws: whatever jwt.validate throws*/
+ * @throws: whatever jwt.verify throws*/
 UserSchema.statics.verifyToken = function (token) {
 	return jwt.verify(token, SECRET)
 }

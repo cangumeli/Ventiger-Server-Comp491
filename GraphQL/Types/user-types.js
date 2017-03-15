@@ -6,11 +6,12 @@ import {
 	GraphQLID,
 	GraphQLInt
 } from 'graphql'
-
 import {
 	GraphQLEmail,
 	GraphQLPassword
 } from 'graphql-custom-types'
+
+export const PasswordType = new GraphQLPassword(6, 30)
 
 export const RegistrationType = new GraphQLInputObjectType({
 	name: 'RegistrationBody',
@@ -18,7 +19,7 @@ export const RegistrationType = new GraphQLInputObjectType({
 		name: {type: new GraphQLNonNull(GraphQLString)},
 		phone: {type: GraphQLString},
 		email: {type: GraphQLEmail},
-		password: {type: new GraphQLNonNull( new GraphQLPassword(6, 30))}
+		password: {type: new GraphQLNonNull(PasswordType)}
 	}
 })
 
@@ -46,5 +47,12 @@ export const ProfileType = new GraphQLObjectType({
 		email: {type: GraphQLEmail},
 		name: {type: GraphQLString},
 		_id: {type: GraphQLID},
+	}
+})
+
+export const ProfileEdit = new GraphQLInputObjectType({
+	name: 'ProfileEdit',
+	fields: {
+		name: {type: GraphQLString},
 	}
 })

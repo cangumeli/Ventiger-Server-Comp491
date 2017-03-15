@@ -4,7 +4,7 @@ import graphqlHTTP from 'express-graphql'
 import schema from './GraphQL/schema'
 
 const app = express()
-export const PORT = 8001
+export const PORT = 3000
 
 if (process.argv[2]) {
 	require('./GraphQL/updateSchema')

@@ -1,23 +1,28 @@
 import {
 	RegistrationType,
-		LoginType,
-		TokenType
+	LoginType,
+	TokenType,
+	ProfileEdit,
+	PasswordType,
+	ProfileType
 } from '../Types/user-types'
-
+import {
+	GraphQLLimitedString
+} from 'graphql-custom-types'
 import AbstractUser from '../../Models/abstract-user'
 import User from '../../Models/user'
 import UnverifiedUser from '../../Models/unverified-user'
 import { IdentityTransformer } from '../../Models/identy-transformer'
 import bluebird from 'bluebird'
-bluebird.promisifyAll(AbstractUser.collection)
-
 import {
 	GraphQLBoolean,
 	GraphQLID,
 	GraphQLNonNull,
 	GraphQLString
 } from 'graphql'
+import { getProjection } from '../utils'
 
+bluebird.promisifyAll(AbstractUser.collection)
 const idTransformer = new IdentityTransformer()
 //TODO: consider rule engines
 const shouldOverrideUnvalidatedRegister = true
@@ -100,7 +105,9 @@ export default {
 				result.ok != 1) {
 				throw Error('Cannot convert user')
 			}
-			const verified = userToVerify.createUser()
+			//const verified = userToVerify.createUser()
+			const user = await User.findById(userToVerify._id).exec()
+
 			// Remove the unverified
 			/*userToVerify.remove()
 			await userToVerify.save()
@@ -110,8 +117,8 @@ export default {
 				throw new Error('DirtyRemove')
 			}*/
 			return {
-				token: verified.generateToken(),
-				daysToExpiry: AbstractUser.TOKEN_TIME_TO_EXP
+				token: user.generateToken(),
+				daysToExpiry: User.TOKEN_TIME_TO_EXP
 			}
 		}
 	},
@@ -136,8 +143,62 @@ export default {
 			}
 			return {
 				token: user.generateToken(),
-				daysToExpiry: AbstractUser.TOKEN_TIME_TO_EXP
+				daysToExpiry: User.TOKEN_TIME_TO_EXP
 			}
 		}
 	},
+
+	changeProfileInfo: {
+		type: ProfileType,
+		args: {
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			info: {
+				name: 'info',
+				type: new GraphQLNonNull(ProfileEdit),
+			}
+		},
+		resolve(source, args, _, info) {
+			const selections = getProjection(info.fieldNodes)
+			const {_id} = User.verifyToken(source.token || args.token)
+			console.log('Called...')
+			console.log('args', args.info)
+			return User
+				.findOneAndUpdate(
+					{_id},
+					{$set: args.info},
+					{new: true, select: selections})
+				.exec()
+		}
+	},
+
+	changePassword: {
+		type: GraphQLBoolean,
+		args: {
+			oldPassword: {
+				name: 'oldPassword',
+				type: new GraphQLNonNull(PasswordType)
+			},
+			newPassword: {
+				name: 'newPassword',
+				type: new GraphQLNonNull(PasswordType)
+			},
+			token: {
+				name: 'token',
+				type: GraphQLString
+			}
+		},
+		async resolve(source, args) {
+			const { _id } = User.verifyToken(source.token || args.token)
+			const user = await User.findById(_id).exec()
+			if (!user.validPassword(args.oldPassword)) {
+				throw Error('WrongPassword')
+			}
+			user.setPassword(args.newPassword)
+			const saved = await user.save()
+			return Boolean(saved)
+		}
+	}
 }

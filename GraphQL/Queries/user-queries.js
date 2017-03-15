@@ -63,16 +63,20 @@ export const viewer = {
 				type: GraphQLID
 			}
 		},
-		resolve(source, args, context, info) {
+		async resolve(source, args, context, info) {
 			// TODO: add friend and random profile support
 			// console.log(info.fieldNodes[0].selectionSet.selections)
 			const projection = getProjection(info.fieldNodes)
-			// console.log('source', source)
-			// console.log('args', args)
-			return User
+			/*console.log('source', source)
+			console.log('args', args)
+			console.log('_id', args._id || source._id)
+			console.log('projection', projection)*/
+			 const user = await User
 				.findById(args._id || source._id)
 				.select(projection)
 				.exec()
+			//console.log('user', user)
+			return user
 		}
 	}
 }
