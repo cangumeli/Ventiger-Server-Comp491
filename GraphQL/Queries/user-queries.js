@@ -8,7 +8,8 @@ import {
 	GraphQLNonNull,
 	GraphQLID,
 	GraphQLBoolean,
-	GraphQLString
+	GraphQLString,
+	GraphQLList
 } from 'graphql'
 
 import {
@@ -77,6 +78,21 @@ export const viewer = {
 				.exec()
 			//console.log('user', user)
 			return user
+		}
+	},
+	friendRequests: {
+		type: new GraphQLList(ProfileType),
+		async resolve(source, args, context, info) {
+			const projection = getProjection(info.fieldNodes)
+			const { friendRequests } = await User
+				.findById(source._id)
+				.select('friendRequests')
+				.exec()
+			let requesters = await User
+				.find({_id: {$in: friendRequests}})
+				.select({...projection, visibility:1})
+				.exec()
+			return requesters.map(user => user.visibilityFilter('everyone'))
 		}
 	}
 }

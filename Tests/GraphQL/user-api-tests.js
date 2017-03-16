@@ -11,11 +11,10 @@ const chai = require('chai')
 chai.use(require('chai-as-promised'))
 const expect = chai.expect
 
-require('../../db')
 const body = {
-	name: "Attila Gürsoy",
-	password: "1cabernet1",
-	email: 'agursoy@ku.edu.tr',
+	name: "User Useroğlu",
+	password: "somehighlysecurepassword",
+	email: 'uuoglu17@ku.edu.tr',
 }
 
 
@@ -30,7 +29,7 @@ describe('User API Test', function () {
 	})
 
 	describe('Registration', function () {
-		describe('Success', function() {
+		describe('Success', function () {
 			let code = null
 			let res = {}
 
@@ -51,6 +50,7 @@ describe('User API Test', function () {
 			})
 
 			it('Successful return', function () {
+				//console.log(res)
 				expect(Boolean(res.data && res.data.register)).to.equal(true)
 			})
 
@@ -63,7 +63,7 @@ describe('User API Test', function () {
 					}))
 					.to.eventually.deep.equal({name: body.name, email: body.email})
 			})
-			
+
 			it('sendValidationCode should give the correct output', function () {
 				return expect(graphql(schema, `mutation {
 					sendValidationCode(code: "${code}", _id: "${res.data.register}") {
@@ -72,16 +72,15 @@ describe('User API Test', function () {
 					}
 				}`)
 					.then(res => {
-						// console.log(res)
 						return Boolean(
 							res.data
 							&& res.data.sendValidationCode
 							&& res.data.sendValidationCode.token
-							&& (res.data.sendValidationCode.daysToExpiry == AbstractUser.TOKEN_TIME_TO_EXP))
+							&& (res.data.sendValidationCode.daysToExpiry === User.TOKEN_TIME_TO_EXP))
 					}))
 					.to.eventually.equal(true)
 			})
-			
+
 			it('After send validation code, user should be saved', function () {
 				return expect(User
 					.findOne({email: body.email})
@@ -98,6 +97,175 @@ describe('User API Test', function () {
 
 		})
 		// TODO: More failure tests?
+	})
+	
+	describe('Profile reaching tests', function () {
+		const fields = [{
+			phone: '05059309494',
+			name: 'Can Gümeli',
+			password: 'c01234b'
+		}, {
+			phone: '1111',
+			name: 'Something Something',
+			password: 'a0123492'
+		}, {
+			email: 'something@something',
+			name: 'Ata Keşfeden',
+			password: 'asdsdsd'
+		}]
+
+		const users = []
+
+		function populateDB() {
+			return Promise.all(
+				fields.map(field => {
+					const user = new User(field)
+					users.push(user)
+					user.setPassword(field.password)
+					return user.save()
+				})
+			)
+		}
+
+		before(populateDB)
+
+		it("Reach correct user with token", function () {
+			const token = users[0].generateToken()
+			const body = {
+				name: users[0].name,
+				phone: users[0].phone
+			}
+			//console.log(body)
+			return expect(graphql(schema, `
+				query {
+					viewer(token: "${token}") {
+						profile {
+							name,
+							phone
+						}
+					}
+				}
+			`)
+				.then(res => {
+					//console.log("res", res.data.viewer.profile)
+					return res.data.viewer.profile
+				}))
+				.to.eventually.deep.equal(body)
+		})
+
+	})
+	
+	describe("Friendship", function () {
+		const bodies = [
+			{name: 'us', phone: '110'},
+			{name: 'friend', phone: '11881'},
+			{name: 'enemy', phone: '11882'}
+		]
+
+		let token, savedUsers
+		before(async function () {
+			const users = bodies.map((body) => {
+				const user = new User(body)
+				user.setPassword('atacan')
+				return user
+			})
+			await Promise.all(users.map(user => user.save()))
+			const us = await User.findOne({phone: bodies[0].phone}).exec()
+			token = us.generateToken()
+			savedUsers = await User.find({phone: {$in: bodies.map(body=>body.phone)}}).exec()
+		})
+		
+		it('Friend should be added successfully', async function () {
+			const result = await graphql(schema, `
+				mutation {
+					addFriend(token: "${token}", _id: "${savedUsers[1]._id}")
+				}
+			`)
+			//console.log('friend result', result)
+			expect(result.data.addFriend).to.equal(true)
+			expect(result.errors).to.equal(undefined)
+		})
+
+		it('Friend requests should be seen', async function () {
+			token = savedUsers[1].generateToken()
+			const res = await graphql(schema, `
+				query {
+					viewer(token: "${token}") {
+						friendRequests {
+							name
+							_id
+							phone
+						}
+					}
+				}
+			`)
+			expect(res.errors).to.equal(undefined)
+			expect(res.data.viewer.friendRequests).to.deep.equal([{
+				name: savedUsers[0].name,
+				_id: savedUsers[0]._id.toString(),
+				phone: null
+			}])
+		})
+
+		it('Friend acceptance', async function() {
+			const result = await graphql(schema, `
+				mutation {
+					acceptFriend(token: "${token}", _id: "${savedUsers[0]._id}") {
+						_id
+						name
+					}
+				}
+			`)
+			console.log('res', result)
+			expect(result.errors).to.equal(undefined)
+			expect(result.data.acceptFriend).to.deep.equal({
+				_id: savedUsers[0]._id.toString(),
+				name: savedUsers[0].name
+			})
+		})
+
+		it('Added friend should be seen by acceptor', async function () {
+			const result = await graphql(schema, `
+				query {
+					friends(token: "${token}") {
+						_id
+						name
+					}
+				}
+			`)
+			expect(result.data.friends).to.deep.equal([{
+				name: savedUsers[0].name,
+				_id: savedUsers[0]._id.toString()
+			}])
+		})
+
+		it('Friend requests should be empty', async () => {
+			const result = await graphql(schema, `
+			query {
+				viewer(token: "${token}") {
+					friendRequests {
+						name
+					}
+				}
+			}`)
+			expect(result.data.friendRequests).to.deep.equal([])
+		})
+		
+		it('Request sender should see the accepted friend', async () => {
+			token = savedUsers[0].generateToken()
+			const res = await graphql(schema, `
+				query {
+					friends(token: "${token}") {
+						_id
+						name
+					}
+				}
+			`)
+			expect(res.data.friends).to.deep.equal([
+				{name: savedUsers[1].name,
+				_id: savedUsers[1]._id.toString()}
+			])
+		})
 	})
 
 	after(function () {

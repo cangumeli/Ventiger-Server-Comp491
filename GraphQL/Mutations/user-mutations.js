@@ -200,5 +200,76 @@ export default {
 			const saved = await user.save()
 			return Boolean(saved)
 		}
+	},
+
+	addFriend: {
+		type: GraphQLBoolean,
+		args: {
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			_id: {
+				name: '_id',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		async resolve(source, args) {
+			const { _id } = User.verifyToken(args.token || source.token)
+			const { nMatched, nModified } = await User.update(
+				{_id: args._id},
+				{$addToSet: {friendRequests: _id}}
+			)
+			if (nMatched === 0) {
+				throw Error('UserNotFound')
+			}
+			return Boolean(nModified)
+		}
+	},
+
+	acceptFriend: {
+		type: ProfileType,
+		args: {
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			_id: {
+				name: '_id',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		async resolve(source, args, _, info) {
+			const selections = getProjection(info.fieldNodes)
+			const { _id } = User.verifyToken(args.token || source.token)
+			const { nMatched, nModified } = await User
+				.update({
+					$and: [{_id}, {friendRequests: args._id}]
+				}, {
+					$addToSet: {friends: args._id},
+					$pull: {friendRequests: args._id}
+				})
+				.exec()
+			if (nMatched == 0) {
+				throw Error('NoRequest')
+			}
+			if (nModified == 0) {
+				throw Error('NoSuchRequest')
+			}
+			let acceptedUser
+			try {
+				acceptedUser = await User
+					.findByIdAndUpdate(
+						args._id,
+						{$addToSet: {friends: _id}},
+						{new: true, select: selections}
+					)
+					.exec()
+			} catch (err) {
+				console.error(err)
+				throw new Error('DirtyWrite')
+			}
+			return acceptedUser.visibilityFilter('friend')
+		}
 	}
 }
