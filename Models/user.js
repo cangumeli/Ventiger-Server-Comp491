@@ -3,8 +3,8 @@ import AbstractUser from './abstract-user'
 import jwt from 'jsonwebtoken'
 
 const VisibilitySchema = new mongoose.Schema({
-	friends: [String],
-	everyone: [String]
+	friends: mongoose.SchemaTypes.Mixed,
+	everyone: mongoose.SchemaTypes.Mixed
 })
 
 const UserSchema = new mongoose.Schema({
