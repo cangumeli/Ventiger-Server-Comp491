@@ -227,13 +227,17 @@ describe('User API Test', function () {
 		it('Added friend should be seen by acceptor', async function () {
 			const result = await graphql(schema, `
 				query {
-					friends(token: "${token}") {
-						_id
-						name
+					viewer(token: "${token}") {
+						friends {
+							_id
+							name
+						}
 					}
 				}
 			`)
-			expect(result.data.friends).to.deep.equal([{
+			console.log('result friends', result)
+			expect(result.errors).to.equal(undefined)
+			expect(result.data.viewer.friends).to.deep.equal([{
 				name: savedUsers[0].name,
 				_id: savedUsers[0]._id.toString()
 			}])
@@ -248,20 +252,22 @@ describe('User API Test', function () {
 					}
 				}
 			}`)
-			expect(result.data.friendRequests).to.deep.equal([])
+			expect(result.data.viewer.friendRequests).to.deep.equal([])
 		})
 		
 		it('Request sender should see the accepted friend', async () => {
 			token = savedUsers[0].generateToken()
 			const res = await graphql(schema, `
 				query {
-					friends(token: "${token}") {
-						_id
-						name
+					viewer(token: "${token}") {
+						friends {
+							_id
+							name
+						}
 					}
 				}
 			`)
-			expect(res.data.friends).to.deep.equal([
+			expect(res.data.viewer.friends).to.deep.equal([
 				{name: savedUsers[1].name,
 				_id: savedUsers[1]._id.toString()}
 			])

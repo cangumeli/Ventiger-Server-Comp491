@@ -87,12 +87,28 @@ export const viewer = {
 			const { friendRequests } = await User
 				.findById(source._id)
 				.select('friendRequests')
+				.populate({
+					path: 'friendRequests',
+					select: {...projection, visibility:1}
+				})
 				.exec()
-			let requesters = await User
-				.find({_id: {$in: friendRequests}})
-				.select({...projection, visibility:1})
-				.exec()
-			return requesters.map(user => user.visibilityFilter('everyone'))
+			return friendRequests.map(user => user.visibilityFilter('everyone'))
 		}
-	}
+	},
+	friends: {
+		type: new GraphQLList(ProfileType),
+		async resolve(source, args, context, info) {
+			const projection = getProjection(info.fieldNodes)
+			const { friends } = await User
+				.findById(source._id)
+				.select('friends')
+				.populate({
+					path: 'friends',
+					select: projection
+				})
+				.exec()
+			return friends.map(friend => friend.visibilityFilter('friend'))
+		}
+	},
+
 }
