@@ -110,5 +110,29 @@ export const viewer = {
 			return friends.map(friend => friend.visibilityFilter('friend'))
 		}
 	},
+	contacts: {
+		type: new GraphQLList(ProfileType),
+		args: {
+			phones: {
+				name: 'phones',
+				type: new GraphQLList(GraphQLString)
+			}
+		},
+		async resolve(source, args, context, info) {
+			const projection = getProjection(info.fieldNodes)
+			const { friends } = await User
+				.findById(source._id)
+				.select('friends')
+				.exec()
+			const contacts = await User
+				.find({
+					_id: {$nin: friends},
+					phone: {$in: args.phones}
+				})
+				.select(projection)
+				.exec()
+			return contacts.map(c => c.visibilityFilter())
+		}
 
+	}
 }
