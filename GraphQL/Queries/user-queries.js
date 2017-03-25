@@ -17,7 +17,14 @@ import {
 	GraphQLEmail
 } from 'graphql-custom-types'
 
-import { getProjection } from '../utils'
+import {
+	getProjection,
+	idTransformerToUserTransformer
+} from '../utils'
+import {IdentityTransformer} from '../../Models/identy-transformer'
+
+const idTransformer = new IdentityTransformer()
+const {encryptUser: encryptUserId, decryptUser: decryptUserId} = idTransformerToUserTransformer(idTransformer)
 
 export const global = {
 	//TODO: Consider overrides in boolean queries
@@ -30,6 +37,8 @@ export const global = {
 			}
 		},
 		async resolve(source, args) {
+			args = decryptUserId(args)
+
 			const user = await User
 				.findOne({phone: args.phone})
 				.select('_id')
@@ -47,6 +56,8 @@ export const global = {
 			}
 		},
 		async resolve(source, args) {
+			args = decryptUserId(args)
+
 			const user = await User
 				.findOne({email: args.email})
 				.select('_id')
@@ -68,13 +79,15 @@ export const viewer = {
 		async resolve(source, args, context, info) {
 			// TODO: add friend and random profile support
 			// console.log(info.fieldNodes[0].selectionSet.selections)
+			args = decryptUserId(args)
+
 			if (!args._id || (args._id === source._id) ) {
 				const projection = getProjection(info.fieldNodes)
 				const user = await User
 					.findById(source._id)
 					.select(projection)
 					.exec()
-				return user
+				return encryptUserId(user)
 			}
 			const myid = source._id
 			const otherid = args._id
@@ -86,7 +99,7 @@ export const viewer = {
 			}
 			const me = users.find(user => user._id.equals(myid))
 			const other = users.find(user => user._id.equals(otherid))
-			return other.visibilityFilter(User.getVisibilityByRelation(other.getRelation(me)))
+			return encryptUserId(other.visibilityFilter(User.getVisibilityByRelation(other.getRelation(me))))
 		}
 	},
 	friendRequests: {
@@ -101,7 +114,7 @@ export const viewer = {
 					select: {...projection, visibility:1}
 				})
 				.exec()
-			return friendRequests.map(user => user.visibilityFilter('everyone'))
+			return friendRequests.map(user => encryptUserId(user.visibilityFilter('everyone')))
 		}
 	},
 	friends: {
@@ -113,6 +126,7 @@ export const viewer = {
 			}
 		},
 		async resolve(source, args, context, info) {
+			args = decryptUserId(args)
 			const projection = getProjection(info.fieldNodes)
 			let query = User.findById(source._id)
 			const getPopulationOptions = () => {
@@ -135,7 +149,7 @@ export const viewer = {
 			}
 			query.populate(getPopulationOptions())
 			const { friends } = await query.exec()
-			return friends.map(friend => friend.visibilityFilter('friend'))
+			return friends.map(friend => encryptUserId(friend.visibilityFilter('friend')))
 		}
 	},
 	relation:{
@@ -147,6 +161,9 @@ export const viewer = {
 			}
 		},
 		async resolve(source, args){
+
+			args = decryptUserId(args)
+
 			if(source._id === args._id){
 				return User.RELATIONS.MYSELF.value
 			}

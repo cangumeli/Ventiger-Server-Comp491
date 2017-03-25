@@ -20,10 +20,15 @@ import {
 	GraphQLNonNull,
 	GraphQLString
 } from 'graphql'
-import { getProjection } from '../utils'
+import {
+	getProjection,
+	idTransformerToUserTransformer
+} from '../utils'
 
 bluebird.promisifyAll(AbstractUser.collection)
 const idTransformer = new IdentityTransformer()
+const {encryptUser: encryptUserId} = idTransformerToUserTransformer(idTransformer)
+
 //TODO: consider rule engines
 const shouldOverrideUnvalidatedRegister = true
 
@@ -87,8 +92,9 @@ export default {
 			}
 		},
 		async resolve(source, args) {
+			args._id = idTransformer.decryptId(args._id)
 			const userToVerify = await UnverifiedUser
-				.findById(idTransformer.decryptId(args._id))
+				.findById(args._id)
 				.exec()
 			if (!userToVerify) {
 				throw new Error('UserNotFound')
@@ -160,17 +166,18 @@ export default {
 				type: new GraphQLNonNull(ProfileEdit),
 			}
 		},
-		resolve(source, args, _, info) {
+		async resolve(source, args, _, info) {
 			const selections = getProjection(info.fieldNodes)
 			const {_id} = User.verifyToken(source.token || args.token)
 			console.log('Called...')
 			console.log('args', args.info)
-			return User
+			const user = await User
 				.findOneAndUpdate(
 					{_id},
 					{$set: args.info},
 					{new: true, select: selections})
 				.exec()
+			return encryptUserId(user)
 		}
 	},
 
@@ -215,6 +222,7 @@ export default {
 			}
 		},
 		async resolve(source, args) {
+			args._id = idTransformer.decryptId(args._id)
 			const { _id } = User.verifyToken(args.token || source.token)
 			const requester = await User
 				.findById(_id)
@@ -248,6 +256,7 @@ export default {
 			}
 		},
 		async resolve(source, args, _, info) {
+			args._id = idTransformer.decryptId(args._id)
 			const selections = getProjection(info.fieldNodes)
 			const { _id } = User.verifyToken(args.token || source.token)
 			const { nMatched, nModified } = await User
@@ -277,7 +286,7 @@ export default {
 				console.error(err)
 				throw new Error('DirtyWrite')
 			}
-			return acceptedUser.visibilityFilter('friend')
+			return encryptUserId(acceptedUser.visibilityFilter('friend'))
 		}
 	},
 
@@ -294,6 +303,7 @@ export default {
 			}
 		},
 		async resolve(source, args) {
+			args._id = idTransformer.decryptId(args._id)
 			const { _id } = User.verifyToken(args.token || source.token)
 			const { nMatched, nModified } = await User.update(
 				{$and: [{_id}, {friendRequests:  args._id }]},

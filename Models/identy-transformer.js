@@ -1,9 +1,10 @@
 export class IdentityTransformer {
 	decryptId(hash) {
-		return hash
+		let result = hash.substring('Identity_Transformer_'.length)
+		return result.length <= 0 ? null : result
 	}
 
 	encryptId(id) {
-		return id
+		return 'Identity_Transformer_' + (id == null ? '' : id)
 	}
 }

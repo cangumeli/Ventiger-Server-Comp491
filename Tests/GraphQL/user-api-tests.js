@@ -18,6 +18,11 @@ const body = {
 	email: 'uuoglu17@ku.edu.tr',
 }
 
+import {idTransformerToUserTransformer} from '../../GraphQL/utils'
+import {IdentityTransformer} from '../../Models/identy-transformer'
+
+const idTransformer = new IdentityTransformer()
+const {encryptUser: encryptUserId, decryptUser: decryptUserId} = idTransformerToUserTransformer(idTransformer)
 
 describe('User API Test', function () {
 
@@ -179,12 +184,13 @@ describe('User API Test', function () {
 		it('Friend should be added successfully', async function () {
 			const result = await graphql(schema, `
 				mutation {
-					addFriend(token: "${token}", _id: "${savedUsers[1]._id}")
+					addFriend(token: "${token}", _id: "${encryptUserId(savedUsers[1])._id}")
 				}
 			`)
 			//console.log('friend result', result)
-			expect(result.data.addFriend).to.equal(true)
 			expect(result.errors).to.equal(undefined)
+			expect(result.data.addFriend).to.equal(true)
+
 		})
 
 		it('Friend requests should be seen', async function () {
@@ -205,23 +211,24 @@ describe('User API Test', function () {
 				name: savedUsers[0].name,
 				_id: savedUsers[0]._id.toString(),
 				phone: null
-			}])
+			}].map(encryptUserId))
 		})
 
 		it('Friend acceptance', async function () {
 			const result = await graphql(schema, `
 				mutation {
-					acceptFriend(token: "${token}", _id: "${savedUsers[0]._id}") {
+					acceptFriend(token: "${token}", _id: "${encryptUserId(savedUsers[0])._id}") {
 						_id
 						name
 					}
 				}
 			`)
 			expect(result.errors).to.equal(undefined)
-			expect(result.data.acceptFriend).to.deep.equal({
-				_id: savedUsers[0]._id.toString(),
-				name: savedUsers[0].name
-			})
+			expect(result.data.acceptFriend).to.deep.equal(
+				encryptUserId({
+					_id: savedUsers[0]._id.toString(),
+					name: savedUsers[0].name
+				}))
 		})
 
 		it('Added friend should be seen by acceptor', async function () {
@@ -240,7 +247,7 @@ describe('User API Test', function () {
 			expect(result.data.viewer.friends).to.deep.equal([{
 				name: savedUsers[0].name,
 				_id: savedUsers[0]._id.toString()
-			}])
+			}].map(encryptUserId))
 		})
 
 		it('Friend requests should be empty', async() => {
@@ -272,20 +279,20 @@ describe('User API Test', function () {
 					name: savedUsers[1].name,
 					_id: savedUsers[1]._id.toString()
 				}
-			])
+			].map(encryptUserId))
 		})
 
 		it('rejectFriend should return correct response', async() => {
 			let token = savedUsers[0].generateToken()
 			await graphql(schema, `
 				mutation {
-					addFriend(token: "${token}", _id: "${savedUsers[2]._id}")
+					addFriend(token: "${token}", _id: "${encryptUserId(savedUsers[2])._id}")
 				}
 			`)
 			token = savedUsers[2].generateToken()
 			let result = await graphql(schema, `
 				mutation {
-					rejectFriend(token: "${token}", _id: "${savedUsers[0]._id}")
+					rejectFriend(token: "${token}", _id: "${encryptUserId(savedUsers[0])._id}")
 				}
 			`)
 			expect(result.errors).to.be.undefined
@@ -337,25 +344,26 @@ describe('User API Test', function () {
 			token = savedUsers[3].generateToken()
 			await graphql(schema, `
 				mutation {
-					addFriend(token: "${token}", _id: "${us._id}")
+					addFriend(token: "${token}", _id: "${encryptUserId(us)._id}")
 				}
 			`)
 
 			token = us.generateToken()
 			await graphql(schema, `
 				mutation {
-					addFriend(token: "${token}", _id: "${savedUsers[2]._id}")
+					addFriend(token: "${token}", _id: "${encryptUserId(savedUsers[2])._id}")
 				}
 			`)
 		})
 		it('should return correct relations', async function () {
 			token = us.generateToken()
+			const encryptedSavedUsers = savedUsers.map(encryptUserId)
 			const testCases = [
-				{id: savedUsers[0]._id, relation:User.RELATIONS.MYSELF.value},
-				{id: savedUsers[1]._id, relation:User.RELATIONS.FRIEND.value},
-				{id: savedUsers[2]._id, relation:User.RELATIONS.REQUESTER.value},
-				{id: savedUsers[3]._id, relation:User.RELATIONS.REQUESTED.value},
-				{id: savedUsers[4]._id, relation:User.RELATIONS.NOBODY.value}
+				{id: encryptedSavedUsers[0]._id, relation: User.RELATIONS.MYSELF.value},
+				{id: encryptedSavedUsers[1]._id, relation: User.RELATIONS.FRIEND.value},
+				{id: encryptedSavedUsers[2]._id, relation: User.RELATIONS.REQUESTER.value},
+				{id: encryptedSavedUsers[3]._id, relation: User.RELATIONS.REQUESTED.value},
+				{id: encryptedSavedUsers[4]._id, relation: User.RELATIONS.NOBODY.value}
 			]
 
 			for(let i = 0; i < testCases.length; i++){
