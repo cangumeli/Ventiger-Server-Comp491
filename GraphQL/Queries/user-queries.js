@@ -147,6 +147,9 @@ export const viewer = {
 			}
 		},
 		async resolve(source, args){
+			if(source._id === args._id){
+				return User.RELATIONS.MYSELF.value
+			}
 			const users = await User
 				.find({_id: {$in: [source._id, args._id]}})
 				.exec()

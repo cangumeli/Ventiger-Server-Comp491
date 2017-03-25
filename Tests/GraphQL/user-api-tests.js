@@ -8,6 +8,7 @@ const UnverifiedUser = require('../../Models/unverified-user').default
 const AbstractUser = require('../../Models/abstract-user').default
 const User = require('../../Models/user').default
 const chai = require('chai')
+chai.config.truncateThreshold = 0
 chai.use(require('chai-as-promised'))
 const expect = chai.expect
 
@@ -350,6 +351,7 @@ describe('User API Test', function () {
 		it('should return correct relations', async function () {
 			token = us.generateToken()
 			const testCases = [
+				{id: savedUsers[0]._id, relation:User.RELATIONS.MYSELF.value},
 				{id: savedUsers[1]._id, relation:User.RELATIONS.FRIEND.value},
 				{id: savedUsers[2]._id, relation:User.RELATIONS.REQUESTER.value},
 				{id: savedUsers[3]._id, relation:User.RELATIONS.REQUESTED.value},

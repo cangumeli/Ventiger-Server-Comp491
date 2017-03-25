@@ -22,6 +22,8 @@ const friendVis = {
 	phone: 1,
 	birthday: 1
 }
+
+
 UserSchema.statics.defaultVisibility = {
 	friend: friendVis,
 	everyone: everyoneVis
@@ -62,6 +64,12 @@ UserSchema.methods.visibilityFilter = function (accessorType) {
 	const visibility = (this.visibility
 		|| UserSchema.statics.defaultVisibility)[accessorType || 'everyone']
 	const _user = {}
+
+	if(accessorType == 'myself'){
+		console.log(this)
+		return this
+	}
+
 	Object.keys(this.toObject()).forEach(key => {
 		//console.log('key', key)
 		if (visibility[key]) {
@@ -73,6 +81,7 @@ UserSchema.methods.visibilityFilter = function (accessorType) {
 
 
 const Rel = {
+	MYSELF: {value: 'MYSELF'},
 	FRIEND: {value: 'FRIEND'},
 	REQUESTED: {value: 'REQUESTED'},
 	REQUESTER: {value: 'REQUESTER'},
@@ -82,6 +91,9 @@ const Rel = {
 UserSchema.statics.RELATIONS = Rel
 
 UserSchema.methods.getRelation = function (other) {
+	if(this._id.equals(other._id)){
+		return Rel.MYSELF.value
+	}
 	if (this.friends.some(_id => _id.equals(other._id))) {
 		return Rel.FRIEND.value
 	}
@@ -96,11 +108,14 @@ UserSchema.methods.getRelation = function (other) {
 
 UserSchema.statics.getVisibilityByRelation = function (relationValue) {
 	switch (relationValue) {
+		case Rel.MYSELF.value:
+			return 'myself'
 		case Rel.FRIEND.value:
 			return 'friend'
 		case Rel.NOBODY.value:
 		case Rel.REQUESTED.value:
 		case Rel.REQUESTER.value:
+		default:
 			return 'everyone'
 	}
 }
