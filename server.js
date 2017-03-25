@@ -2,8 +2,10 @@ import express from 'express'
 import './db'
 import graphqlHTTP from 'express-graphql'
 import schema from './GraphQL/schema'
+import morgan from 'morgan'
 
 const app = express()
+app.use(morgan('combined'))
 export const PORT = 3000
 
 if (process.argv[2]) {
