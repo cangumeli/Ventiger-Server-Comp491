@@ -94,4 +94,15 @@ UserSchema.methods.getRelation = function (other) {
 	return Rel.NOBODY.value
 }
 
+UserSchema.statics.getVisibilityByRelation = function (relationValue) {
+	switch (relationValue) {
+		case Rel.FRIEND.value:
+			return 'friend'
+		case Rel.NOBODY.value:
+		case Rel.REQUESTED.value:
+		case Rel.REQUESTER.value:
+			return 'everyone'
+	}
+}
+
 export default AbstractUser.discriminator('User', UserSchema)

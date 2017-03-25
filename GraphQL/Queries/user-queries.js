@@ -68,17 +68,25 @@ export const viewer = {
 		async resolve(source, args, context, info) {
 			// TODO: add friend and random profile support
 			// console.log(info.fieldNodes[0].selectionSet.selections)
-			const projection = getProjection(info.fieldNodes)
-			/*console.log('source', source)
-			console.log('args', args)
-			console.log('_id', args._id || source._id)
-			console.log('projection', projection)*/
-			 const user = await User
-				.findById(args._id || source._id)
-				.select(projection)
+			if (!args._id || (args._id === source._id) ) {
+				const projection = getProjection(info.fieldNodes)
+				const user = await User
+					.findById(source._id)
+					.select(projection)
+					.exec()
+				return user
+			}
+			const myid = source._id
+			const otherid = args._id
+			const users = await User
+				.find({_id: {$in: [source._id, args._id]}})
 				.exec()
-			//console.log('user', user)
-			return user
+			if (users.length < 2) {
+				throw Error('UserNotFound')
+			}
+			const me = users.find(user => user._id.equals(myid))
+			const other = users.find(user => user._id.equals(otherid))
+			return other.visibilityFilter(User.getVisibilityByRelation(other.getRelation(me)))
 		}
 	},
 	friendRequests: {
