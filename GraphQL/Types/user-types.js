@@ -4,12 +4,14 @@ import {
 	GraphQLString,
 	GraphQLNonNull,
 	GraphQLID,
-	GraphQLInt
+	GraphQLInt,
+	GraphQLEnumType
 } from 'graphql'
 import {
 	GraphQLEmail,
 	GraphQLPassword
 } from 'graphql-custom-types'
+import User from '../../Models/user'
 
 export const PasswordType = new GraphQLPassword(6, 30)
 
@@ -55,4 +57,9 @@ export const ProfileEdit = new GraphQLInputObjectType({
 	fields: {
 		name: {type: GraphQLString},
 	}
+})
+
+export const UserRelation = new GraphQLEnumType({
+	name: 'UserRelation',
+	values: User.RELATIONS
 })

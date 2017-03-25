@@ -1,7 +1,8 @@
 import User from '../../Models/user'
 
 import {
-	ProfileType
+	ProfileType,
+	UserRelation
 } from '../Types/user-types'
 
 import {
@@ -110,5 +111,32 @@ export const viewer = {
 			return friends.map(friend => friend.visibilityFilter('friend'))
 		}
 	},
+
+	relation:{
+		type: UserRelation,
+		args: {
+			_id: {
+				name: '_id',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		async resolve(source, args){
+			const users = await User
+				.find({_id: {$in: [source._id, args._id]}})
+				.exec()
+			if (users.length < 2) {
+				throw Error('UserNotFound')
+			}
+			let me, other
+			for (let i = 0; i < 2; i++) {
+				if (users[i]._id.toString() === source._id) {
+					me = users[i]
+				} else {
+					other = users[i]
+				}
+			}
+			return me.getRelation(other)
+		}
+	}
 
 }

@@ -71,4 +71,27 @@ UserSchema.methods.visibilityFilter = function (accessorType) {
 	return _user
 }
 
+
+const Rel = {
+	FRIEND: {value: 'FRIEND'},
+	REQUESTED: {value: 'REQUESTED'},
+	REQUESTER: {value: 'REQUESTER'},
+	NOBODY: {value: 'NOBODY'},
+}
+
+UserSchema.statics.RELATIONS = Rel
+
+UserSchema.methods.getRelation = function (other) {
+	if (this.friends.some(_id => _id.equals(other._id))) {
+		return Rel.FRIEND.value
+	}
+	if (this.friendRequests.some(_id => _id.equals(other._id))) {
+		return Rel.REQUESTED.value
+	}
+	if (other.friendRequests.some(_id => _id.equals(this._id))) {
+		return Rel.REQUESTER.value
+	}
+	return Rel.NOBODY.value
+}
+
 export default AbstractUser.discriminator('User', UserSchema)

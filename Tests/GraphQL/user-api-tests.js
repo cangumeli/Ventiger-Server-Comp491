@@ -172,9 +172,9 @@ describe('User API Test', function () {
 			await Promise.all(users.map(user => user.save()))
 			const us = await User.findOne({phone: bodies[0].phone}).exec()
 			token = us.generateToken()
-			savedUsers = await User.find({phone: {$in: bodies.map(body=>body.phone)}}).exec()
+			savedUsers = await User.find({phone: {$in: bodies.map(body => body.phone)}}).exec()
 		})
-		
+
 		it('Friend should be added successfully', async function () {
 			const result = await graphql(schema, `
 				mutation {
@@ -207,7 +207,7 @@ describe('User API Test', function () {
 			}])
 		})
 
-		it('Friend acceptance', async function() {
+		it('Friend acceptance', async function () {
 			const result = await graphql(schema, `
 				mutation {
 					acceptFriend(token: "${token}", _id: "${savedUsers[0]._id}") {
@@ -216,7 +216,6 @@ describe('User API Test', function () {
 					}
 				}
 			`)
-			console.log('res', result)
 			expect(result.errors).to.equal(undefined)
 			expect(result.data.acceptFriend).to.deep.equal({
 				_id: savedUsers[0]._id.toString(),
@@ -243,7 +242,7 @@ describe('User API Test', function () {
 			}])
 		})
 
-		it('Friend requests should be empty', async () => {
+		it('Friend requests should be empty', async() => {
 			const result = await graphql(schema, `
 			query {
 				viewer(token: "${token}") {
@@ -254,8 +253,8 @@ describe('User API Test', function () {
 			}`)
 			expect(result.data.viewer.friendRequests).to.deep.equal([])
 		})
-		
-		it('Request sender should see the accepted friend', async () => {
+
+		it('Request sender should see the accepted friend', async() => {
 			token = savedUsers[0].generateToken()
 			const res = await graphql(schema, `
 				query {
@@ -268,9 +267,106 @@ describe('User API Test', function () {
 				}
 			`)
 			expect(res.data.viewer.friends).to.deep.equal([
-				{name: savedUsers[1].name,
-				_id: savedUsers[1]._id.toString()}
+				{
+					name: savedUsers[1].name,
+					_id: savedUsers[1]._id.toString()
+				}
 			])
+		})
+
+		it('rejectFriend should return correct response', async() => {
+			let token = savedUsers[0].generateToken()
+			await graphql(schema, `
+				mutation {
+					addFriend(token: "${token}", _id: "${savedUsers[2]._id}")
+				}
+			`)
+			token = savedUsers[2].generateToken()
+			let result = await graphql(schema, `
+				mutation {
+					rejectFriend(token: "${token}", _id: "${savedUsers[0]._id}")
+				}
+			`)
+			expect(result.errors).to.be.undefined
+			expect(result.data.rejectFriend).to.equal(true)
+		})
+		it('Should be deleted silently when rejected', async ()=> {
+			let result = await
+			graphql(schema, `
+			query {
+				viewer(token: "${token}") {
+					friendRequests {
+						name
+					}
+				}
+			}`)
+			expect(result.errors).to.be.undefined
+			expect(result.data.viewer.friendRequests).to.deep.equal([])
+		})
+	})
+
+	describe('Relationship', function () {
+		const bodies = [
+			{name: 'user1', phone: '5110'},
+			{name: 'user2', phone: '511881'},
+			{name: 'user3', phone: '5433'},
+			{name: 'user4', phone: '511882'},
+			{name: 'user5', phone: '511883'}
+		]
+
+		let token, savedUsers, us
+		before(async function () {
+			const users = bodies.map((body) => {
+				const user = new User(body)
+				user.setPassword('atacan')
+				return user
+			})
+			await Promise.all(users.map(user => user.save()))
+			savedUsers = await User.find({phone: {$in: bodies.map(body => body.phone)}}).exec()
+
+			us = savedUsers[0]
+
+
+			us.friends.push(savedUsers[1]._id)
+			savedUsers[1].friends.push(us._id)
+
+			await us.save()
+			await savedUsers[1].save()
+
+			token = savedUsers[3].generateToken()
+			await graphql(schema, `
+				mutation {
+					addFriend(token: "${token}", _id: "${us._id}")
+				}
+			`)
+
+			token = us.generateToken()
+			await graphql(schema, `
+				mutation {
+					addFriend(token: "${token}", _id: "${savedUsers[2]._id}")
+				}
+			`)
+		})
+		it('should return correct relations', async function () {
+			token = us.generateToken()
+			const testCases = [
+				{id: savedUsers[1]._id, relation:User.RELATIONS.FRIEND.value},
+				{id: savedUsers[2]._id, relation:User.RELATIONS.REQUESTER.value},
+				{id: savedUsers[3]._id, relation:User.RELATIONS.REQUESTED.value},
+				{id: savedUsers[4]._id, relation:User.RELATIONS.NOBODY.value}
+			]
+
+			for(let i = 0; i < testCases.length; i++){
+				let testCase = testCases[i]
+				let result = await graphql(schema, `
+					query {
+						viewer(token: "${token}") {
+							relation(_id: "${testCase.id.toString()}")
+						}
+					}`)
+				expect(result.errors).to.be.undefined
+				expect(result.data.viewer.relation).to.equal(testCase.relation)
+			}
 		})
 	})
 

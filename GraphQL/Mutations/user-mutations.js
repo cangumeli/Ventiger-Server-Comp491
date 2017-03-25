@@ -216,10 +216,18 @@ export default {
 		},
 		async resolve(source, args) {
 			const { _id } = User.verifyToken(args.token || source.token)
+			const requester = await User
+				.findById(_id)
+				.where('friendRequests').eq(args._id)
+				.select('_id')
+				.exec()
+			if (requester) {
+				throw Error('AlreadyRequested')
+			}
 			const { nMatched, nModified } = await User.update(
-				{_id: args._id},
+				{$and: [{_id: args._id}, {friends: {$ne: _id} }]},
 				{$addToSet: {friendRequests: _id}}
-			)
+			).exec()
 			if (nMatched === 0) {
 				throw Error('UserNotFound')
 			}
@@ -254,7 +262,7 @@ export default {
 				throw Error('NoRequest')
 			}
 			if (nModified == 0) {
-				throw Error('NoSuchRequest')
+				throw Error('AlreadyFriend')
 			}
 			let acceptedUser
 			try {
@@ -270,6 +278,31 @@ export default {
 				throw new Error('DirtyWrite')
 			}
 			return acceptedUser.visibilityFilter('friend')
+		}
+	},
+
+	rejectFriend: {
+		type: GraphQLBoolean,
+		args: {
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			_id: {
+				name: '_id',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		async resolve(source, args) {
+			const { _id } = User.verifyToken(args.token || source.token)
+			const { nMatched, nModified } = await User.update(
+				{$and: [{_id}, {friendRequests:  args._id }]},
+				{$pull: {friendRequests: args._id}}
+			).exec()
+			if (nMatched === 0) {
+				throw Error('UserNotFound')
+			}
+			return Boolean(nModified)
 		}
 	}
 }
