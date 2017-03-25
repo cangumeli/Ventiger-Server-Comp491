@@ -106,20 +106,38 @@ export const viewer = {
 	},
 	friends: {
 		type: new GraphQLList(ProfileType),
+		args: {
+			sortedBy: {
+				name: 'sortedBy',
+				type: GraphQLString
+			}
+		},
 		async resolve(source, args, context, info) {
 			const projection = getProjection(info.fieldNodes)
-			const { friends } = await User
-				.findById(source._id)
-				.select('friends')
-				.populate({
+			let query = User.findById(source._id)
+			const getPopulationOptions = () => {
+				const pop = {
 					path: 'friends',
 					select: projection
-				})
-				.exec()
+				}
+				if (!args.sortedBy) {
+					return pop
+				}
+				switch (args.sortedBy.toLowerCase()) {
+					case "name":
+						return {
+							...pop,
+							options: {sort: {name: 1}}
+						}
+					default:
+						throw Error('Unknown sort key')
+				}
+			}
+			query.populate(getPopulationOptions())
+			const { friends } = await query.exec()
 			return friends.map(friend => friend.visibilityFilter('friend'))
 		}
 	},
-
 	relation:{
 		type: UserRelation,
 		args: {
