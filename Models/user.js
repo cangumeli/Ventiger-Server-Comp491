@@ -89,6 +89,9 @@ const Rel = {
 
 UserSchema.statics.RELATIONS = Rel
 
+/**
+ * returns RESULT that logically completes the following: "'this' is 'RESULT' for 'other'"
+ * */
 UserSchema.methods.getRelation = function (other) {
 	if(this._id.equals(other._id)){
 		return Rel.MYSELF.value
