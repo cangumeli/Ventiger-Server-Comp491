@@ -66,8 +66,7 @@ UserSchema.methods.visibilityFilter = function (accessorType) {
 	const _user = {}
 
 	if(accessorType == 'myself'){
-		console.log(this)
-		return this
+		return this.toObject()
 	}
 
 	Object.keys(this.toObject()).forEach(key => {

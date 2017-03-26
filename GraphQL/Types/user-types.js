@@ -42,16 +42,6 @@ export const TokenType = new GraphQLObjectType({
 	}
 })
 
-export const ProfileType = new GraphQLObjectType({
-	name: 'Profile',
-	fields: {
-		phone: {type: GraphQLString},
-		email: {type: GraphQLEmail},
-		name: {type: GraphQLString},
-		_id: {type: GraphQLID},
-	}
-})
-
 export const ProfileEdit = new GraphQLInputObjectType({
 	name: 'ProfileEdit',
 	fields: {
@@ -62,4 +52,16 @@ export const ProfileEdit = new GraphQLInputObjectType({
 export const UserRelation = new GraphQLEnumType({
 	name: 'UserRelation',
 	values: User.RELATIONS
+})
+
+// TODO: consider nested relation
+export const ProfileType = new GraphQLObjectType({
+	name: 'Profile',
+	fields: {
+		phone: {type: GraphQLString},
+		email: {type: GraphQLEmail},
+		name: {type: GraphQLString},
+		_id: {type: GraphQLID},
+		relation: {type: UserRelation}
+	}
 })

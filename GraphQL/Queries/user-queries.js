@@ -161,7 +161,6 @@ export const viewer = {
 			}
 		},
 		async resolve(source, args){
-
 			args = decryptUserId(args)
 
 			if(source._id === args._id){
@@ -183,6 +182,33 @@ export const viewer = {
 			}
 			return me.getRelation(other)
 		}
+	},
+	contacts: {
+		type: new GraphQLList(ProfileType),
+		args: {
+			phones: {
+				name: 'phones',
+				type: new GraphQLNonNull(new GraphQLList(GraphQLString))
+			}
+		},
+		async resolve(source, args, context, info) {
+			args = decryptUserId(args)
+			//const projection = getProjection(info.fieldNodes)
+			// TODO: reconsider the policy
+			const users = await User
+				.find({phone: {in: args.phones}})
+				.exec()
+			const me = users.find(user => user._id.toString() === source._id)
+			return users
+				.map(user => {
+					const relation = me.getRelation(user)
+					return {
+						...user.visibilityFilter(User.getVisibilityByRelation(relation)), relation
+					}
+				})
+				.filter(user =>
+					(user.relation !== User.RELATIONS.FRIEND.value)
+					&& (user.relation !== User.RELATIONS.MYSELF.value))
+		}
 	}
-
 }
