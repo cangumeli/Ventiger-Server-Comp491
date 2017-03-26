@@ -196,7 +196,7 @@ export const viewer = {
 			//const projection = getProjection(info.fieldNodes)
 			// TODO: reconsider the policy
 			const users = await User
-				.find({phone: {$in: args.phones}})
+				.find({$or: [{phone: {$in: args.phones}}, {_id: source._id}]})
 				//.select(projection)
 				.exec()
 			const me = users.find(user => user._id.toString() === source._id)
