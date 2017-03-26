@@ -204,12 +204,14 @@ export const viewer = {
 				.map(user => {
 					const relation = me.getRelation(user)
 					return {
-						...user.visibilityFilter(User.getVisibilityByRelation(relation)), relation
+						...user.visibilityFilter(User.getVisibilityByRelation(relation)),
+						relation
 					}
 				})
 				.filter(user =>
 					(user.relation !== User.RELATIONS.FRIEND.value)
 					&& (user.relation !== User.RELATIONS.MYSELF.value))
+				.map(user => encryptUserId(user))
 		}
 	}
 
