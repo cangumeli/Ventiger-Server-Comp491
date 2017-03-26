@@ -29,6 +29,7 @@ bluebird.promisifyAll(AbstractUser.collection)
 const idTransformer = new IdentityTransformer()
 const {encryptUser: encryptUserId} = idTransformerToUserTransformer(idTransformer)
 
+
 //TODO: consider rule engines
 const shouldOverrideUnvalidatedRegister = true
 
@@ -224,6 +225,7 @@ export default {
 		async resolve(source, args) {
 			args._id = idTransformer.decryptId(args._id)
 			const { _id } = User.verifyToken(args.token || source.token)
+			console.log(args._id)
 			const requester = await User
 				.findById(_id)
 				.where('friendRequests').eq(args._id)
@@ -232,11 +234,11 @@ export default {
 			if (requester) {
 				throw Error('AlreadyRequested')
 			}
-			const { nMatched, nModified } = await User.update(
+			const {n, nModified} = await User.update(
 				{$and: [{_id: args._id}, {friends: {$ne: _id} }]},
 				{$addToSet: {friendRequests: _id}}
 			).exec()
-			if (nMatched === 0) {
+			if (!n) {
 				throw Error('UserNotFound')
 			}
 			return Boolean(nModified)
@@ -259,7 +261,7 @@ export default {
 			args._id = idTransformer.decryptId(args._id)
 			const selections = getProjection(info.fieldNodes)
 			const { _id } = User.verifyToken(args.token || source.token)
-			const { nMatched, nModified } = await User
+			const { n, nModified } = await User
 				.update({
 					$and: [{_id}, {friendRequests: args._id}]
 				}, {
@@ -267,7 +269,7 @@ export default {
 					$pull: {friendRequests: args._id}
 				})
 				.exec()
-			if (nMatched == 0) {
+			if (n == 0) {
 				throw Error('NoRequest')
 			}
 			if (nModified == 0) {
@@ -305,11 +307,11 @@ export default {
 		async resolve(source, args) {
 			args._id = idTransformer.decryptId(args._id)
 			const { _id } = User.verifyToken(args.token || source.token)
-			const { nMatched, nModified } = await User.update(
+			const { n, nModified } = await User.update(
 				{$and: [{_id}, {friendRequests:  args._id }]},
 				{$pull: {friendRequests: args._id}}
 			).exec()
-			if (nMatched === 0) {
+			if (n === 0) {
 				throw Error('UserNotFound')
 			}
 			return Boolean(nModified)
