@@ -157,13 +157,13 @@ export const viewer = {
 		args: {
 			_id: {
 				name: '_id',
-				type: new GraphQLNonNull(GraphQLID)
+				type: GraphQLID
 			}
 		},
 		async resolve(source, args){
 			args = decryptUserId(args)
 
-			if(source._id === args._id){
+			if(!args._id || source._id === args._id){
 				return User.RELATIONS.MYSELF.value
 			}
 			const users = await User
@@ -196,7 +196,8 @@ export const viewer = {
 			//const projection = getProjection(info.fieldNodes)
 			// TODO: reconsider the policy
 			const users = await User
-				.find({phone: {in: args.phones}})
+				.find({phone: {$in: args.phones}})
+				//.select(projection)
 				.exec()
 			const me = users.find(user => user._id.toString() === source._id)
 			return users
@@ -211,4 +212,5 @@ export const viewer = {
 					&& (user.relation !== User.RELATIONS.MYSELF.value))
 		}
 	}
+
 }
