@@ -37,6 +37,7 @@ export default {
 					[user._id]: {...user, admin: true}
 				}
 			})
+			event.participants.push(user._id)
 			let invites
 			if (args.body.invites) {
 				// TODO: refactor redundancy fields
@@ -50,11 +51,11 @@ export default {
 				})
 			}
 			let saved = await event.save()
-			saved = saved.toObject()
-			saved.creator = {...user, admin:true}
-			saved.invites = invites
-			const transformed = eventTransformer.encrypt(saved)
-			console.log(transformed)
+			saved.denormalizeUsers()
+			//saved = saved.toObject()
+			/*saved.creator = {...user, admin:true}
+			saved.invites = invites*/
+			const transformed = eventTransformer.encrypt(saved.denormalizeUsers())
 			return transformed
 		}
 	}

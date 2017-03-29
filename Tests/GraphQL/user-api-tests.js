@@ -31,6 +31,7 @@ describe('User API Test', function () {
 			|| mongoose.connection.readyState == 2) {
 			return
 		}
+		mongoose.Promise = global.Promise
 		mongoose.connect('mongodb://localhost/VentigerTest/:27017')
 	})
 

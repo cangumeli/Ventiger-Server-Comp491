@@ -50,6 +50,7 @@ describe('Event API Tests', function () {
 		before(async() => {
 			if (mongoose.connection.readyState !== 1 &&
 				mongoose.connection.readyState !== 2) {
+				mongoose.Promise = global.Promise
 				mongoose.connect('mongodb://localhost/VentigerTest/:27017')
 			}
 
@@ -106,15 +107,21 @@ describe('Event API Tests', function () {
 							_id
 							name
 						}
+						participants{
+							name
+							admin
+						}
 					}
 				}
 			`, null, null, {body: event})
-			const result = {...event, invites: [{_id: idTransformer.encryptId(savedUsers[1]._id), name: savedUsers[1].name}]}
+			const result = {...event,
+				participants: [{name: savedUsers[0].name, admin: true}],
+				invites: [{_id: idTransformer.encryptId(savedUsers[1]._id), name: savedUsers[1].name}]}
 			expect(res.errors).to.be.undefined
 			expect(res.data.createEvent).to.deep.equal(result)
 		})
 
-		it('Successful event access', async () => {
+		it('Successful events access', async () => {
 			const res = await graphql(schema, `
 				query {
 					viewer(token: "${token}") {
@@ -125,9 +132,58 @@ describe('Event API Tests', function () {
 				}
 			`)
 			expect(res.errors).to.be.undefined
-			expect(res.data.events).to.deep.equal([
+			expect(res.data.viewer.events).to.deep.equal([
 				{title: events[0].title}, {title: events[1].title}
 			])
 		})
+
+		it('Successful event access', async () => {
+			const { _id } = await Event.findOne({title: events[1].title})
+			const res = await graphql(schema, `
+				query {
+					viewer(token: "${token}") {
+						event(_id: "${_id}") {
+							title
+						time {
+							startTime
+							endTime
+						}
+						location {
+							address
+							info
+							coordinates
+						}
+						invites {
+							_id
+							name
+						}
+						participants{
+							name
+							admin
+						}
+					}
+				}
+			}`)
+			expect(res.errors).to.be.undefined
+			const result = {...events[1],
+				participants: [{name: savedUsers[0].name, admin: true}],
+				invites: [{_id: idTransformer.encryptId(savedUsers[1]._id), name: savedUsers[1].name}]}
+			expect(res.data.viewer.event).to.deep.equal(result)
+		})
+
+		it('Unsuccessful event access', async () => {
+			const { _id } = await Event.findOne({title: events[1].title})
+			const token = savedUsers[1].generateToken()
+			const res = await graphql(schema, `
+				query {
+					viewer(token: "${token}") {
+						event(_id: "${_id}") {
+							title	
+						}
+					}
+				}`)
+			expect(res.errors[0].message).to.equal('NoSuchEvent')
+		})
 	})
+
 })

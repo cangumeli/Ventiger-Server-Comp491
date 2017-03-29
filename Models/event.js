@@ -38,4 +38,22 @@ EventSchema.statics.selectionKeys = function (keys) {
 	}
 }
 
+EventSchema.methods.denormalizeUsers = function () {
+	const obj = this.toObject()
+	if (obj.creator) {
+		obj.creator = obj.userInfo[obj.creator] || this.userInfo[obj.creator.toString()]
+	}
+	/*this.participants = this.participants.map(p => this.userInfo[p])
+	this.invites = this.invites.map(p => this.userInfo[p])*/
+	const userArrays = ['participants', 'invites']
+	userArrays.forEach(field => {
+		if (obj[field]) {
+			obj[field] = obj[field].map(id =>
+				obj.userInfo[id] || obj.userInfo[id].toString())
+			//console.log(this[field])
+		}
+	})
+	return obj
+}
+
 export default mongoose.model('Event', EventSchema)

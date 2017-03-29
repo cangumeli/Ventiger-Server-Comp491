@@ -6,6 +6,7 @@ import userMutations from './Mutations/user-mutations'
 import eventMutations from './Mutations/event-mutations'
 import {global as globalUser, viewer as viewerUser } from './Queries/user-queries'
 import User from '../Models/user'
+import { viewer as viewerEvent } from './Queries/event-queries'
 
 export default new GraphQLSchema({
 	mutation: new GraphQLObjectType({
@@ -37,7 +38,8 @@ export default new GraphQLSchema({
 					name: 'User',
 					fields: {
 						_id: {name: '_id', type: GraphQLID},
-						...viewerUser
+						...viewerUser,
+						...viewerEvent
 					}
 				}),
 				resolve: (source, args) => {
