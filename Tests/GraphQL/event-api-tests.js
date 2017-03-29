@@ -35,11 +35,21 @@ describe('Event API Tests', function () {
 	describe('Event setup', function () {
 		const events = [{
 			title: "Rakı"
-		}]
+		},
+			{
+				title: "Fields",
+				time: {startTime: new Date(), endTime: new Date()},
+				location: {
+					info: "info",
+					coordinates: [3, 5],
+					address: "No 3"
+				}
+			}
+		]
 		let savedUsers = [], token
-		before(async () => {
+		before(async() => {
 			if (mongoose.connection.readyState !== 1 &&
-				 mongoose.connection.readyState !== 2) {
+				mongoose.connection.readyState !== 2) {
 				mongoose.connect('mongodb://localhost/VentigerTest/:27017')
 			}
 
@@ -53,7 +63,7 @@ describe('Event API Tests', function () {
 			token = savedUsers[0].generateToken()
 		})
 
-		it('Event creation should succeed', async () => {
+		it('Event creation', async() => {
 			const res = await graphql(schema, `
 				mutation ($body: EventBody!){
 					createEvent(body: $body, token: "${token}") {
@@ -61,6 +71,7 @@ describe('Event API Tests', function () {
 						creator {
 							_id
 							name
+							admin
 						}
 					}
 				}
@@ -70,10 +81,53 @@ describe('Event API Tests', function () {
 				...events[0],
 				creator: {
 					_id: idTransformer.encryptId(savedUsers[0]._id.toString()),
-					name: savedUsers[0].name
+					name: savedUsers[0].name,
+					admin: true
 				}
 			})
 		})
-	})
 
+		it('Event creation with fields', async() => {
+			const event = {...events[1], invites:[savedUsers[1]._id]}
+			const res = await graphql(schema, `
+				mutation ($body: EventBody!){
+					createEvent(body: $body, token: "${token}") {
+						title
+						time {
+							startTime
+							endTime
+						}
+						location {
+							address
+							info
+							coordinates
+						}
+						invites {
+							_id
+							name
+						}
+					}
+				}
+			`, null, null, {body: event})
+			const result = {...event, invites: [{_id: idTransformer.encryptId(savedUsers[1]._id), name: savedUsers[1].name}]}
+			expect(res.errors).to.be.undefined
+			expect(res.data.createEvent).to.deep.equal(result)
+		})
+
+		it('Successful event access', async () => {
+			const res = await graphql(schema, `
+				query {
+					viewer(token: "${token}") {
+						events {
+							title
+						}
+					}
+				}
+			`)
+			expect(res.errors).to.be.undefined
+			expect(res.data.events).to.deep.equal([
+				{title: events[0].title}, {title: events[1].title}
+			])
+		})
+	})
 })

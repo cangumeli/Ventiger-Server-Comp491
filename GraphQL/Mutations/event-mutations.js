@@ -11,7 +11,7 @@ import {
 import { IdentityTransformer } from '../../Models/identy-transformer'
 
 const idTransformer = new IdentityTransformer()
-import { idTransformerToEventTransformer } from '../utils'
+import { getProjection, idTransformerToEventTransformer } from '../utils'
 const eventTransformer = idTransformerToEventTransformer(idTransformer)
 
 export default {
@@ -27,22 +27,34 @@ export default {
 				type: GraphQLString
 			}
 		},
-		async resolve(source, args) {
+		async resolve(source, args, _, info) {
 			const user = User.verifyToken(args.token || source.token)
+			const projection = getProjection(info.fieldNodes)
 			const event = new Event({
 				...args.body,
 				creator: user._id,
 				userInfo: {
-					[user._id]: user
+					[user._id]: {...user, admin: true}
 				}
 			})
+			let invites
+			if (args.body.invites) {
+				// TODO: refactor redundancy fields
+				invites = await User
+					.find({_id: {$in: args.body.invites}})
+					.select({_id: 1, name: 1})
+					.exec()
+				//console.log(invites)
+				invites.forEach(p => {
+					event.userInfo[p._id] = p
+				})
+			}
 			let saved = await event.save()
 			saved = saved.toObject()
-			saved.creator = user
-			//console.log(saved)
+			saved.creator = {...user, admin:true}
+			saved.invites = invites
 			const transformed = eventTransformer.encrypt(saved)
-			//transformed.creator = user
-			//console.log(transformed)
+			console.log(transformed)
 			return transformed
 		}
 	}

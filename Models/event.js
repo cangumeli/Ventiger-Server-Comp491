@@ -9,8 +9,8 @@ const LocationSchema = new mongoose.Schema({
 })
 
 const TimeSchema = new mongoose.Schema({
-	startDate: Date,
-	endDate: Date,
+	startTime: Date,
+	endTime: Date,
 })
 
 const EventSchema = new mongoose.Schema({
@@ -25,6 +25,7 @@ const EventSchema = new mongoose.Schema({
 })
 
 EventSchema.index({participants: 1})
+EventSchema.index({invites: 1})
 // Necessary fields in all selections
 EventSchema.statics.meta = {
 	userInfo: 1

@@ -45,10 +45,26 @@ export const EventLocationType = new GraphQLObjectType({
 	fields: locationFields
 })
 
+export const EventInvitationType = new GraphQLObjectType({
+	name: 'EventInvitationType',
+	fields: {
+		_id: {type: GraphQLID},
+		name: {type: GraphQLString}
+	}
+})
+
+
+export const EventInvitationInputType = new GraphQLInputObjectType({
+	name: 'EventInvitationInputType',
+	fields: {
+		_id: {type: new GraphQLNonNull(GraphQLID)},
+		name: {type: new GraphQLNonNull(GraphQLString)}
+	}
+})
+
 const eventBaseFields = {
 	title: {type: new GraphQLNonNull(GraphQLString)},
-	info: {type: GraphQLString},
-	invites: {type: new GraphQLList(GraphQLID)},
+	info: {type: GraphQLString}
 }
 
 export const EventBodyType = new GraphQLInputObjectType({
@@ -56,7 +72,8 @@ export const EventBodyType = new GraphQLInputObjectType({
 	fields: {
 		...eventBaseFields,
 		time: {type: EventTimeInputType},
-		eventLocation: {type: EventLocationInputType}
+		location: {type: EventLocationInputType},
+		invites: {type: new GraphQLList(GraphQLID)},
 	}
 })
 
@@ -79,7 +96,8 @@ export const EventType = new GraphQLObjectType({
 		creator: {type: EventParticipantType},
 		participants: {type: new GraphQLList(EventParticipantType)},
 		time: {type: EventTimeType},
-		eventLocation: {type: EventLocationType}
+		location: {type: EventLocationType},
+		invites: {type: new GraphQLList(EventInvitationType)}
 	}
 })
 

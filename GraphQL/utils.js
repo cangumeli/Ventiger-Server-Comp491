@@ -55,6 +55,9 @@ export function idTransformerToEventTransformer(idTransformer) {
 			if (event.creator) {
 				event.creator = userTransformer.encryptUser(event.creator)
 			}
+			if (event.invites) {
+				event.invites = event.invites.map(user => userTransformer.encryptUser(user))
+			}
 			return event
 		},
 
@@ -71,6 +74,9 @@ export function idTransformerToEventTransformer(idTransformer) {
 			}
 			if (event.creator) {
 				event.creator = userTransformer.decryptUser(event.creator)
+			}
+			if (event.invites) {
+				event.invites = event.invites.map(user => userTransformer.decryptUser(user))
 			}
 			return event
 		}
