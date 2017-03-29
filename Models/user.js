@@ -8,8 +8,8 @@ const VisibilitySchema = new mongoose.Schema({
 })
 
 const UserSchema = new mongoose.Schema({
-	friends: [mongoose.SchemaTypes.Oid], //normalized friend storage
-	friendRequests: [mongoose.SchemaTypes.Oid],
+	friends: [{type: mongoose.SchemaTypes.Oid, ref:'User'}], //normalized friend storage
+	friendRequests: [{type: mongoose.SchemaTypes.Oid, ref:'User'}],
 	birthday: Date,
 	visibility: VisibilitySchema
 })

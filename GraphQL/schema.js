@@ -3,6 +3,7 @@ import {
 	GraphQLID, GraphQLString
 } from 'graphql'
 import userMutations from './Mutations/user-mutations'
+import eventMutations from './Mutations/event-mutations'
 import {global as globalUser, viewer as viewerUser } from './Queries/user-queries'
 import User from '../Models/user'
 
@@ -10,7 +11,8 @@ export default new GraphQLSchema({
 	mutation: new GraphQLObjectType({
 		name: 'Mutation',
 		fields: {
-			...userMutations
+			...userMutations,
+			...eventMutations
 		}
 	}),
 	/*query: new GraphQLObjectType({

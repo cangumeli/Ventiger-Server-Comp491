@@ -35,3 +35,44 @@ export function idTransformerToUserTransformer(idTransformer) {
 		}
 	}
 }
+
+export function idTransformerToEventTransformer(idTransformer) {
+	const userTransformer = idTransformerToUserTransformer(idTransformer)
+	return {
+		encrypt(event) {
+			if (event == null) {
+				return event
+			}
+			if (event.toObject) {
+				event = event.toObject()
+			} else {
+				event = Object.assign({}, event)
+			}
+			event._id = idTransformer.encryptId(event._id)
+			if (event.participants) {
+				event.participants = event.participants.map(user => userTransformer.encryptUser(user))
+			}
+			if (event.creator) {
+				event.creator = userTransformer.encryptUser(event.creator)
+			}
+			return event
+		},
+
+		decrypt(event){
+			if (event == null) {
+				return event
+			}
+			if (event._id) {
+				event = Object.assign({}, event)
+				event._id = idTransformer.decryptId(event._id)
+			}
+			if (event.participants) {
+				event.participants = event.participants.map(user => userTransformer.decryptUser(user))
+			}
+			if (event.creator) {
+				event.creator = userTransformer.decryptUser(event.creator)
+			}
+			return event
+		}
+	}
+}
