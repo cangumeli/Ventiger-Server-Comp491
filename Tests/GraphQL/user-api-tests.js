@@ -312,6 +312,27 @@ describe('User API Test', function () {
 			expect(result.errors).to.be.undefined
 			expect(result.data.viewer.friendRequests).to.deep.equal([])
 		})
+		it('Friend should be successfully deleted', async () => {
+			console.log(encryptUserId(savedUsers[0]._id.toString()))
+			const mutationRes = await graphql(schema, `
+				mutation {
+					removeFriend(_id: "${encryptUserId(savedUsers[1])._id}", token: "${token}")
+				}
+			`)
+			expect(mutationRes.errors).to.be.undefined
+			expect(mutationRes.data.removeFriend).to.equal(true)
+			const res = await graphql(schema, `
+				query {
+					viewer(token: "${token}") {
+						friends {
+							_id
+							name
+						}
+					}
+				}
+			`)
+			expect(res.data.viewer.friends).to.deep.equal([])
+		})
 	})
 
 	describe('Relationship', function () {

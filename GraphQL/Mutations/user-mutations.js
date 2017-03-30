@@ -316,5 +316,36 @@ export default {
 			}
 			return Boolean(nModified)
 		}
+	},
+
+	removeFriend: {
+		type: GraphQLBoolean,
+		args: {
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			_id: {
+				name: '_id',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		async resolve(source, args) {
+			args._id = idTransformer.decryptId(args._id)
+			const { _id } = User.verifyToken(args.token || source.token)
+			const {n, nModified} = await User
+				.update(
+					{_id: {$in: [args._id, _id]}},
+					{$pull: {friends: {$in: [args._id, _id]}}},
+					{multi: true})
+				.exec()
+			if (n !== 2) {
+				throw Error('One of users were removed')
+			}
+			if (nModified === 1) {
+				throw new Error('DirtyWrite')
+			}
+			return Boolean(nModified===2)
+		}
 	}
 }
