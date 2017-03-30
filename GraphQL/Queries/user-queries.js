@@ -153,6 +153,7 @@ export const viewer = {
 		}
 	},
 	relation:{
+		description: `RESULT logically represents the following: "'viewer' is 'RESULT' for '_id'`,
 		type: UserRelation,
 		args: {
 			_id: {
