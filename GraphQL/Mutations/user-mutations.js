@@ -170,8 +170,6 @@ export default {
 		async resolve(source, args, _, info) {
 			const selections = getProjection(info.fieldNodes)
 			const {_id} = User.verifyToken(source.token || args.token)
-			console.log('Called...')
-			console.log('args', args.info)
 			const user = await User
 				.findOneAndUpdate(
 					{_id},
@@ -225,7 +223,6 @@ export default {
 		async resolve(source, args) {
 			args._id = idTransformer.decryptId(args._id)
 			const { _id } = User.verifyToken(args.token || source.token)
-			console.log(args._id)
 			const requester = await User
 				.findById(_id)
 				.where('friendRequests').eq(args._id)
