@@ -16,26 +16,27 @@ describe('Event API Tests', function () {
 	const users = [
 		{
 			name: 'u1',
-			password: '1cabernet1',
+			password: '1pass1',
 			phone: '33333'
 		},
 		{
 			name: 'u2',
-			password: '2cabernet2',
+			password: '2pass2',
 			phone: '4444'
 		},
 		{
 			name: 'u3',
-			password: '3cabernet3',
+			password: '3pass3',
 			phone: '5555'
 		}
 	]
 
 	
 	describe('Event setup', function () {
-		const events = [{
-			title: "Rakı"
-		},
+		const events = [
+			{
+				title: "Rakı"
+			},
 			{
 				title: "Fields",
 				time: {startTime: new Date(), endTime: new Date()},
@@ -58,9 +59,12 @@ describe('Event API Tests', function () {
 				const user = new User(body)
 				user.setPassword(body.password)
 				return user.save()
-				savedUsers.push(saved)
 			})
 			savedUsers = await Promise.all(saves)
+			savedUsers[0].friends.push(savedUsers[1]._id)
+			savedUsers[1].friends.push(savedUsers[0]._id)
+			savedUsers[0] = await savedUsers[0].save()
+			savedUsers[1] = await savedUsers[1].save()
 			token = savedUsers[0].generateToken()
 		})
 
@@ -89,7 +93,7 @@ describe('Event API Tests', function () {
 		})
 
 		it('Event creation with fields', async() => {
-			const event = {...events[1], invites:[savedUsers[1]._id]}
+			const event = {...events[1]}
 			const res = await graphql(schema, `
 				mutation ($body: EventBody!){
 					createEvent(body: $body, token: "${token}") {
@@ -103,10 +107,6 @@ describe('Event API Tests', function () {
 							info
 							coordinates
 						}
-						invites {
-							_id
-							name
-						}
 						participants{
 							name
 							admin
@@ -115,8 +115,8 @@ describe('Event API Tests', function () {
 				}
 			`, null, null, {body: event})
 			const result = {...event,
-				participants: [{name: savedUsers[0].name, admin: true}],
-				invites: [{_id: idTransformer.encryptId(savedUsers[1]._id), name: savedUsers[1].name}]}
+				participants: [{name: savedUsers[0].name, admin: true}],}
+				//invites: [{_id: idTransformer.encryptId(savedUsers[1]._id), name: savedUsers[1].name}]}
 			expect(res.errors).to.be.undefined
 			expect(res.data.createEvent).to.deep.equal(result)
 		})
@@ -153,10 +153,6 @@ describe('Event API Tests', function () {
 							info
 							coordinates
 						}
-						invites {
-							_id
-							name
-						}
 						participants{
 							name
 							admin
@@ -166,13 +162,13 @@ describe('Event API Tests', function () {
 			}`)
 			expect(res.errors).to.be.undefined
 			const result = {...events[1],
-				participants: [{name: savedUsers[0].name, admin: true}],
-				invites: [{_id: idTransformer.encryptId(savedUsers[1]._id), name: savedUsers[1].name}]}
+				participants: [{name: savedUsers[0].name, admin: true}],}
+				//invites: [{_id: idTransformer.encryptId(savedUsers[1]._id), name: savedUsers[1].name}]}
 			expect(res.data.viewer.event).to.deep.equal(result)
 		})
 
-		it('Unsuccessful event access', async () => {
-			const { _id } = await Event.findOne({title: events[1].title})
+		it('Unauthorized event access', async () => {
+			const { _id } = await Event.findOne({title: events[1].title}).exec()
 			const token = savedUsers[1].generateToken()
 			const res = await graphql(schema, `
 				query {
@@ -183,6 +179,70 @@ describe('Event API Tests', function () {
 					}
 				}`)
 			expect(res.errors[0].message).to.equal('NoSuchEvent')
+		})
+
+		it('Successful event invitation', async () => {
+			const { _id } = await Event.findOne({title: events[0].title}).exec()
+			const res = await graphql(schema, `
+				mutation {
+					inviteToEvent(token: "${token}" eventId: "${idTransformer.encryptId(_id.toString())}", userIds: ["${idTransformer.encryptId(savedUsers[1]._id.toString())}"])
+				}
+			`)
+			expect(res.errors).to.be.undefined
+			expect(res.data.inviteToEvent).to.equal(true)
+		})
+
+		it('Should see invitations', async () => {
+			token = savedUsers[1].generateToken()
+			const res = await graphql(schema, `
+				query {
+					viewer(token: "${token}") {
+						eventInvitations {
+							title
+						}
+					}
+				}
+			`)
+			expect(res.errors).to.be.undefined
+			expect(res.data.viewer.eventInvitations).to.deep.equal([{title: events[0].title}])
+		})
+
+		it('Should be able to accept an invitation', async () => {
+			const { _id } = await Event.findOne({title: events[0].title}).exec()
+			const res = await graphql(schema, `
+				mutation {
+					acceptEventInvitation(token: "${token}", eventId: "${idTransformer.decryptId(_id)}") {
+						title
+					}
+				}	
+			`)
+			expect(res.errors).to.be.undefined
+			expect(res.data.acceptEventInvitation.title).to.equal(events[0].title)
+		})
+
+		it('Should be able to reject an invitations', async () => {
+			const { _id } = await Event.findOne({title: events[1].title}).exec()
+			const res = await graphql(schema, `
+				mutation {
+					rejectEventInvitation(token: "${token}", eventId: "${_id}")
+				}
+			`)
+			expect(res.errors).to.be.undefined
+			expect(res.data.rejectEventInvitation).to.equal(true)
+		})
+
+		it('Event invitations should be cleaned after accept and reject', async () => {
+			const res = await graphql(schema, `
+				query {
+					viewer(token: "${token}") {
+						eventInvitations {
+							title
+						}
+					}
+				}
+			`)
+			expect(res.errors).to.be.undefined
+			expect(res.data.viewer.eventIntitations).to.equal([])
 		})
 	})
 
