@@ -72,8 +72,7 @@ export const EventBodyType = new GraphQLInputObjectType({
 	fields: {
 		...eventBaseFields,
 		time: {type: EventTimeInputType},
-		location: {type: EventLocationInputType},
-		invites: {type: new GraphQLList(GraphQLID)},
+		location: {type: EventLocationInputType}
 	}
 })
 

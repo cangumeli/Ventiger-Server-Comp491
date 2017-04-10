@@ -347,5 +347,28 @@ export default {
 			}
 			return Boolean(nModified===2)
 		}
+	},
+	cancelFriendRequest: {
+		type: GraphQLBoolean,
+		args: {
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			_id: {
+				name: '_id',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		async resolve(source, args) {
+			const { _id } = User.verifyToken(args.token || source.token)
+			const {n, nModified} = await User
+				.update({_id: idTransformer.decryptId(args._id)}, {$pull: {friendRequests: _id}})
+				.exec()
+			if (n === 0) {
+				throw Error('UserNotFound')
+			}
+			return Boolean(nModified)
+		}
 	}
 }

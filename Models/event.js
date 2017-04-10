@@ -20,7 +20,7 @@ const EventSchema = new mongoose.Schema({
 	location: LocationSchema,
 	creator: Oid,
 	participants: [{type: Oid, ref: 'User'}],
-	invites: [{type: Oid, ref: 'User'}],
+	invites: [{type: Oid}],
 	userInfo: Mixed // Redundant data for fast access
 })
 

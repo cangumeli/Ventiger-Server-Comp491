@@ -48,5 +48,17 @@ export const viewer = {
 			}
 			return eventTransformer.encrypt(event.denormalizeUsers())
 		}
+	},
+	eventInvitations: {
+		type: new GraphQLList(EventType),
+		async resolve(source, args, __, info) {
+			const proj = getProjection(info.fieldNodes)
+			console.log(source._id)
+			const events =  await Event.find({invites: source._id}).exec()//.select({...proj, ...Event.meta}).exec()
+			console.log(events)
+			const events_ = await Event.find().select('invites').exec()
+			console.log(events_)
+			return events
+		}
 	}
 }
