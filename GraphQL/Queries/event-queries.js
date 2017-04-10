@@ -46,13 +46,14 @@ export const viewer = {
 			if (args.to) {
 				timeConstraint['time.endTime'] = {$lte: args.to}
 			}
-			const ignoreTimeConstraint = {time: {$exists: Boolean(args.ignoreUntimed)}}
-			if (Object.keys(timeConstraint).length === 0) {
-				timeConstraint = ignoreTimeConstraint
-			} else {
-				timeConstraint = {$or: [timeConstraint, ignoreTimeConstraint]}
+			if (args.ignoreUntimed) {
+				const ignoreTimeConstraint = {time: {$exists: Boolean(args.ignoreUntimed)}}
+				if (Object.keys(timeConstraint).length === 0) {
+					timeConstraint = ignoreTimeConstraint
+				} else {
+					timeConstraint = {$or: [timeConstraint, ignoreTimeConstraint]}
+				}
 			}
-
 			const events = await Event
 				.find({participants: source._id})
 				.where(timeConstraint)
