@@ -74,8 +74,20 @@ export default {
 			if (!event) {
 				throw Error('NoSuchEvent')
 			}
-			for (let i = 0; i < args.userIds.length; ++i) {
-				event.invites.addToSet(idTransformer.decryptId(args.userIds[i]))
+			const realUserIds = args.userIds.map(idTransformer.decryptId)
+			for (let i = 0; i < realUserIds.length; ++i) {
+				event.invites.addToSet(realUserIds[i])
+			}
+			const cacheInfo = await User
+				.find({_id: {$in: realUserIds}})
+				.select({name: 1})
+				.exec()
+			console.log('\nUser info ', event.userInfo[me._id])
+			for (let i = 0; i < cacheInfo.length; ++i) {
+				//event.set({['userInfo.' + cacheInfo[i]._id]: {...cacheInfo[i], invitor: event.userInfo[me._id]}})
+				event.userInfo[cacheInfo[i]._id.toString()] = {...cacheInfo[i].toObject(), invitor: me._id}
+				//console.log('_id ', {...cacheInfo[i], invitor: event.userInfo[me._id]})
+				event.markModified('userInfo.' + cacheInfo[i]._id)
 			}
 			const saved = await event.save()
 			return Boolean(saved)

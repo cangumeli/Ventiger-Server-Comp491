@@ -1,7 +1,8 @@
 import Event from '../../Models/event'
 import {
 	getProjection,
-	idTransformerToEventTransformer
+	idTransformerToEventTransformer,
+	idTransformerToUserTransformer
 } from '../utils'
 import {IdentityTransformer} from '../../Models/identy-transformer'
 import {
@@ -16,6 +17,7 @@ import {
 } from '../Types/event-types'
 const idTransformer = new IdentityTransformer()
 const eventTransformer = idTransformerToEventTransformer(idTransformer)
+const userTransformer = idTransformerToUserTransformer(idTransformer)
 
 export const viewer = {
 	events: {
@@ -57,10 +59,14 @@ export const viewer = {
 			const proj = getProjection(info.fieldNodes)
 			const events =  await Event
 				.find({invites: source._id})
-				//.select(Event.selectionKeys(proj))
-				.exec()//.select({...proj, ...Event.meta}).exec()
-			console.log('\nevent ', events.map(event=>event.denormalizeUsers()))
-			return events.map(event=>event.denormalizeUsers())
+				.select(Event.selectionKeys(proj))
+				.exec()
+			for (let i = 0; i < events.length; ++i) {
+				events[i] = eventTransformer.encrypt(events[i])
+				events[i].invitor = userTransformer.encryptUser(events[i].userInfo[events[i].userInfo[source._id].invitor])
+			}
+			//console.log("\nevent asd",Object.keys(events[0] || {}))// && events[0].toObject())
+			return events
 		}
 	}
 }

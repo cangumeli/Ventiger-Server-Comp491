@@ -202,12 +202,17 @@ describe('Event API Tests', function () {
 					viewer(token: "${token}") {
 						eventInvitations {
 							title
+							invitor {
+								name
+							}
 						}
 					}
 				}
 			`)
 			expect(res.errors).to.be.undefined
-			expect(res.data.viewer.eventInvitations).to.deep.equal([{title: events[0].title}])
+			expect(res.data.viewer.eventInvitations).to.deep.equal([{title: events[0].title,
+				invitor: {name: savedUsers[0].name}}]
+			)
 		})
 
 		it('Should be able to accept an invitation', async () => {
