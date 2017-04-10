@@ -45,13 +45,13 @@ export const EventLocationType = new GraphQLObjectType({
 	fields: locationFields
 })
 
-export const EventInvitationType = new GraphQLObjectType({
+/*export const EventInvitationType = new GraphQLObjectType({
 	name: 'EventInvitationType',
 	fields: {
 		_id: {type: GraphQLID},
 		name: {type: GraphQLString}
 	}
-})
+})*/
 
 
 export const EventInvitationInputType = new GraphQLInputObjectType({
@@ -96,9 +96,16 @@ export const EventType = new GraphQLObjectType({
 		participants: {type: new GraphQLList(EventParticipantType)},
 		time: {type: EventTimeType},
 		location: {type: EventLocationType},
-		invites: {type: new GraphQLList(EventInvitationType)}
+		//invites: {type: new GraphQLList(EventInvitationType)}
 	}
 })
 
-
-
+export const EventInvitationType = new GraphQLObjectType({
+	name: 'EventInvitation',
+	fields: {
+		...eventBaseFields,
+		time: {type: EventTimeType},
+		location: {type: EventLocationType},
+		invitor: {type: EventParticipantType}
+	}
+})

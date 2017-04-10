@@ -42,32 +42,12 @@ export default {
 				}
 			})
 			event.participants.push(user._id)
-			/*let invites
-			if (args.body.invites) {
-				// TODO: refactor redundancy fields
-				for (let i = 0; i < args.body.invites.length; ++i) {
-					args.body.invites[i] = idTransformer.decryptId(args.body.invites[i])
-				}
-				invites = await User
-					.find({_id: {$in: args.body.invites}})
-					//.where({friends: user._id})
-					.select({_id: 1, name: 1})
-					.exec()
-				//console.log(invites)
-				invites.forEach(p => {
-					event.userInfo[p._id] = p
-				})
-				console.log(invites)
-			}
-			event.invites = invites*/
-			console.log(event)
 			let saved = await event.save()
 			const transformed = eventTransformer.encrypt(saved.denormalizeUsers())
 			console.log('here')
 			return transformed
 		},
 	},
-
 	inviteToEvent: {
 		type: GraphQLBoolean,
 		args: {
@@ -86,12 +66,81 @@ export default {
 		},
 		async resolve(source, args) {
 			const me = User.verifyToken(args.token || source.token)
-			const event = await Event.findById(idTransformer.decryptId(args.eventId)).exec()
+			const event = await Event
+				.findById(idTransformer.decryptId(args.eventId))
+				.where({participants: me._id})
+				.select({invites: 1, ...Event.meta})
+				.exec()
+			if (!event) {
+				throw Error('NoSuchEvent')
+			}
 			for (let i = 0; i < args.userIds.length; ++i) {
 				event.invites.addToSet(idTransformer.decryptId(args.userIds[i]))
 			}
 			const saved = await event.save()
 			return Boolean(saved)
+		}
+	},
+	acceptEventInvitation: {
+		type: EventType,
+		args: {
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		async resolve(source, args, _, info) {
+			const me = User.verifyToken(args.token || source.token)
+			const proj = getProjection(info.fieldNodes)
+			const eid = idTransformer.decryptId(args.eventId)
+			const event = await Event
+				.findById(eid)
+				.where({invites: me._id})
+				.select(Event.selectionKeys({...proj, participants: 1, invites: 1}))
+				.exec()
+			if (!event) {
+				throw Error('NoSuchEvent')
+			}
+			event.participants.addToSet(me._id)
+			event.invites.pull(me._id)
+			event.userInfo[me._id] = me
+			event.markModified(`userInfo.${me._id}`)
+			const saved = await event.save()
+			return eventTransformer.encrypt(saved.denormalizeUsers())
+		}
+	},
+	rejectEventInvitation: {
+		type: GraphQLBoolean,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+		},
+		async resolve(source, args) {
+			const me = User.verifyToken(args.token || source.token)
+			const eid = idTransformer.decryptId(args.eventId)
+			console.log("Mee! ", me)
+			const {n, nModified } = await Event
+				.update(
+					{_id: eid},
+					{
+						$pull: {invites: me._id},
+						$unset: {[`userInfo.${me._id}`]: ""}
+					})
+				.exec()
+			if (n == 0) {
+				throw Error('NoSuchEvent')
+			}
+			return Boolean(nModified)
 		}
 	}
 }

@@ -11,7 +11,8 @@ import {
 	GraphQLList
 } from 'graphql'
 import {
-	EventType
+	EventType,
+	EventInvitationType
 } from '../Types/event-types'
 const idTransformer = new IdentityTransformer()
 const eventTransformer = idTransformerToEventTransformer(idTransformer)
@@ -39,26 +40,27 @@ export const viewer = {
 		async resolve(source, args, __, info) {
 			const event = await Event
 				.findOne({
-					$and: [{_id: args._id}, {participants: source._id}]
+					$and: [{_id: idTransformer.decryptId(args._id)}, {participants: source._id}]
 				})
 				.select(Event.selectionKeys(getProjection(info.fieldNodes)))
 				.exec()
 			if (!event) {
 				throw Error('NoSuchEvent')
 			}
+			console.log('\nparticipants2 ', event.participants)
 			return eventTransformer.encrypt(event.denormalizeUsers())
 		}
 	},
 	eventInvitations: {
-		type: new GraphQLList(EventType),
+		type: new GraphQLList(EventInvitationType),
 		async resolve(source, args, __, info) {
 			const proj = getProjection(info.fieldNodes)
-			console.log(source._id)
-			const events =  await Event.find({invites: source._id}).exec()//.select({...proj, ...Event.meta}).exec()
-			console.log(events)
-			const events_ = await Event.find().select('invites').exec()
-			console.log(events_)
-			return events
+			const events =  await Event
+				.find({invites: source._id})
+				//.select(Event.selectionKeys(proj))
+				.exec()//.select({...proj, ...Event.meta}).exec()
+			console.log('\nevent ', events.map(event=>event.denormalizeUsers()))
+			return events.map(event=>event.denormalizeUsers())
 		}
 	}
 }

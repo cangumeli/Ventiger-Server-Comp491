@@ -49,7 +49,7 @@ EventSchema.methods.denormalizeUsers = function () {
 	userArrays.forEach(field => {
 		if (obj[field]) {
 			obj[field] = obj[field].map(id =>
-				obj.userInfo[id] || obj.userInfo[id].toString())
+				(obj.userInfo[id] || obj.userInfo[id.toString()]))
 			//console.log(this[field])
 		}
 	})
