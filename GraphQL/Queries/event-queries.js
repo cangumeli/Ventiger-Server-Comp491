@@ -49,7 +49,6 @@ export const viewer = {
 			if (!event) {
 				throw Error('NoSuchEvent')
 			}
-			console.log('\nparticipants2 ', event.participants)
 			return eventTransformer.encrypt(event.denormalizeUsers())
 		}
 	},

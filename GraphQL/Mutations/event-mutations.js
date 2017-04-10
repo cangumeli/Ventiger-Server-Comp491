@@ -33,7 +33,6 @@ export default {
 		},
 		async resolve(source, args, _, info) {
 			const user = User.verifyToken(args.token || source.token)
-			const projection = getProjection(info.fieldNodes)
 			const event = new Event({
 				...args.body,
 				creator: user._id,
@@ -44,7 +43,6 @@ export default {
 			event.participants.push(user._id)
 			let saved = await event.save()
 			const transformed = eventTransformer.encrypt(saved.denormalizeUsers())
-			console.log('here')
 			return transformed
 		},
 	},
@@ -82,7 +80,6 @@ export default {
 				.find({_id: {$in: realUserIds}})
 				.select({name: 1})
 				.exec()
-			console.log('\nUser info ', event.userInfo[me._id])
 			for (let i = 0; i < cacheInfo.length; ++i) {
 				//event.set({['userInfo.' + cacheInfo[i]._id]: {...cacheInfo[i], invitor: event.userInfo[me._id]}})
 				event.userInfo[cacheInfo[i]._id.toString()] = {...cacheInfo[i].toObject(), invitor: me._id}
@@ -140,7 +137,6 @@ export default {
 		async resolve(source, args) {
 			const me = User.verifyToken(args.token || source.token)
 			const eid = idTransformer.decryptId(args.eventId)
-			console.log("Mee! ", me)
 			const {n, nModified } = await Event
 				.update(
 					{_id: eid},
