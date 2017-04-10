@@ -9,8 +9,10 @@ import {
 	GraphQLString,
 	GraphQLID,
 	GraphQLNonNull,
-	GraphQLList
+	GraphQLList,
+	GraphQLBoolean
 } from 'graphql'
+import {GraphQLDateTime} from 'graphql-custom-types'
 import {
 	EventType,
 	EventInvitationType
@@ -22,9 +24,38 @@ const userTransformer = idTransformerToUserTransformer(idTransformer)
 export const viewer = {
 	events: {
 		type: new GraphQLList(EventType),
-		async resolve(source, _, __, info) {
+		args: {
+			from: {
+				name: 'from',
+				type: GraphQLDateTime
+			},
+			to: {
+				name: 'to',
+				type: GraphQLDateTime
+			},
+			ignoreUntimed: {
+				name: 'ignoreUntimed',
+				type: GraphQLBoolean
+			},
+		},
+		async resolve(source, args, __, info) {
+			let timeConstraint = {}
+			if (args.from) {
+				timeConstraint['time.startTime'] = {$gte: args.from}
+			}
+			if (args.to) {
+				timeConstraint['time.endTime'] = {$lte: args.to}
+			}
+			const ignoreTimeConstraint = {time: {$exists: Boolean(args.ignoreUntimed)}}
+			if (Object.keys(timeConstraint).length === 0) {
+				timeConstraint = ignoreTimeConstraint
+			} else {
+				timeConstraint = {$or: [timeConstraint, ignoreTimeConstraint]}
+			}
+
 			const events = await Event
 				.find({participants: source._id})
+				.where(timeConstraint)
 				.select(Event.selectionKeys(getProjection(info.fieldNodes)))
 				.exec()
 			//events.forEach(event => event.denormalizeUsers())
@@ -56,7 +87,7 @@ export const viewer = {
 		type: new GraphQLList(EventInvitationType),
 		async resolve(source, args, __, info) {
 			const proj = getProjection(info.fieldNodes)
-			const events =  await Event
+			const events = await Event
 				.find({invites: source._id})
 				.select(Event.selectionKeys(proj))
 				.exec()
