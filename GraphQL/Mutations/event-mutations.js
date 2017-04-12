@@ -150,5 +150,34 @@ export default {
 			}
 			return Boolean(nModified)
 		}
+	},
+	leaveEvent: {
+		type: GraphQLBoolean,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+		},
+		async resolve(source, args) {
+			const me = User.verifyToken(args.token || source.token)
+			const eid = idTransformer.decryptId(args.eventId)
+			const {n, nModified } = await Event
+				.update(
+					{_id: eid},
+					{
+						$pull: {participants: me._id},
+						$unset: {[`userInfo.${me._id}`]: ""}
+					})
+				.exec()
+			if (n == 0) {
+				throw Error('NoSuchEvent')
+			}
+			return Boolean(nModified)
+		}
 	}
 }

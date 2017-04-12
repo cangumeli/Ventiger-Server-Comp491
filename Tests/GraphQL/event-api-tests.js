@@ -273,6 +273,28 @@ describe('Event API Tests', function () {
 			expect(res.errors).to.be.undefined
 			expect(res.data.viewer.eventInvitations).to.deep.equal([])
 		})
+
+		it('Event should be left successfully', async () => {
+			token = savedUsers[1].generateToken()
+			let { _id } = await Event.findOne({title: events[0].title}).exec()
+			const res = await graphql(schema, `
+				mutation {
+					leaveEvent(token: "${token}", eventId: "${idTransformer.encryptId(_id)}")
+				}
+			`)
+			expect(res.errors).to.be.undefined
+			expect(res.data.leaveEvent).to.equal(true)
+			const res2 = await graphql(schema, `
+				query {
+					viewer(token: "${token}") {
+						events {
+							title
+						}
+					}
+				}
+			`)
+			expect(res2.data.viewer.events).to.deep.equal([])
+		})
 	})
 
 })
