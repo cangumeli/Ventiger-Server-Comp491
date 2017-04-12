@@ -63,6 +63,7 @@ export const EventInvitationInputType = new GraphQLInputObjectType({
 })
 
 const eventBaseFields = {
+	_id: {type: GraphQLID},
 	title: {type: new GraphQLNonNull(GraphQLString)},
 	info: {type: GraphQLString}
 }
