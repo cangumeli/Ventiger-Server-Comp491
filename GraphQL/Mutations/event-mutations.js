@@ -9,7 +9,7 @@ import {
 	GraphQLString,
 	GraphQLBoolean,
 	GraphQLID,
-	GraphQLList
+	GraphQLList,
 } from 'graphql'
 import { IdentityTransformer } from '../../Models/identy-transformer'
 
@@ -17,6 +17,25 @@ const idTransformer = new IdentityTransformer()
 import { getProjection, idTransformerToEventTransformer, idTransformerToUserTransformer } from '../utils'
 const eventTransformer = idTransformerToEventTransformer(idTransformer)
 const userTransformer = idTransformerToUserTransformer(idTransformer)
+
+async function inviteUsers(event, realUserIds, me) {
+	for (let i = 0; i < realUserIds.length; ++i) {
+		event.invites.addToSet(realUserIds[i])
+	}
+	//console.log('IDs ', realUserIds)
+	const cacheInfo = await User
+		.find({_id: {$in: realUserIds}})
+		.select({name: 1})
+		.exec()
+	//console.log('Cache info ', cacheInfo)
+	if (cacheInfo.length == 0) {
+		throw Error('No invited performed')
+	}
+	for (let i = 0; i < cacheInfo.length; ++i) {
+		event.userInfo[cacheInfo[i]._id.toString()] = {...cacheInfo[i].toObject(), invitor: me._id}
+		event.markModified('userInfo.' + cacheInfo[i]._id)
+	}
+}
 
 export default {
 	createEvent: {
@@ -29,7 +48,11 @@ export default {
 			token: {
 				name: 'token',
 				type: GraphQLString
-			}
+			},
+			userIds: {
+				name: 'userIds',
+				type: new GraphQLList(GraphQLID)
+			},
 		},
 		async resolve(source, args, _, info) {
 			const user = User.verifyToken(args.token || source.token)
@@ -41,6 +64,10 @@ export default {
 				}
 			})
 			event.participants.push(user._id)
+			if (args.userIds) {
+				await inviteUsers(event, args.userIds.map(idTransformer.decryptId), user)
+			}
+			//console.log('Event ', event)
 			let saved = await event.save()
 			const transformed = eventTransformer.encrypt(saved.denormalizeUsers())
 			return transformed
@@ -73,19 +100,7 @@ export default {
 				throw Error('NoSuchEvent')
 			}
 			const realUserIds = args.userIds.map(idTransformer.decryptId)
-			for (let i = 0; i < realUserIds.length; ++i) {
-				event.invites.addToSet(realUserIds[i])
-			}
-			const cacheInfo = await User
-				.find({_id: {$in: realUserIds}})
-				.select({name: 1})
-				.exec()
-			for (let i = 0; i < cacheInfo.length; ++i) {
-				//event.set({['userInfo.' + cacheInfo[i]._id]: {...cacheInfo[i], invitor: event.userInfo[me._id]}})
-				event.userInfo[cacheInfo[i]._id.toString()] = {...cacheInfo[i].toObject(), invitor: me._id}
-				//console.log('_id ', {...cacheInfo[i], invitor: event.userInfo[me._id]})
-				event.markModified('userInfo.' + cacheInfo[i]._id)
-			}
+			await inviteUsers(event, realUserIds, me)
 			const saved = await event.save()
 			return Boolean(saved)
 		}

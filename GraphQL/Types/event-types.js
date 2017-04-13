@@ -97,7 +97,7 @@ export const EventType = new GraphQLObjectType({
 		participants: {type: new GraphQLList(EventParticipantType)},
 		time: {type: EventTimeType},
 		location: {type: EventLocationType},
-		//invites: {type: new GraphQLList(EventInvitationType)}
+		invites: {type: new GraphQLList(EventParticipantType)}
 	}
 })
 
