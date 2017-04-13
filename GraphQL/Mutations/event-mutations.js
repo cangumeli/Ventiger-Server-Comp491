@@ -19,6 +19,9 @@ const eventTransformer = idTransformerToEventTransformer(idTransformer)
 const userTransformer = idTransformerToUserTransformer(idTransformer)
 
 async function inviteUsers(event, realUserIds, me) {
+	if (realUserIds.length === 0) {
+		return
+	}
 	for (let i = 0; i < realUserIds.length; ++i) {
 		event.invites.addToSet(realUserIds[i])
 	}
@@ -29,7 +32,7 @@ async function inviteUsers(event, realUserIds, me) {
 		.exec()
 	//console.log('Cache info ', cacheInfo)
 	if (cacheInfo.length == 0) {
-		throw Error('No invited performed')
+		throw Error('No invites performed')
 	}
 	for (let i = 0; i < cacheInfo.length; ++i) {
 		event.userInfo[cacheInfo[i]._id.toString()] = {...cacheInfo[i].toObject(), invitor: me._id}
