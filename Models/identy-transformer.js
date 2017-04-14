@@ -8,3 +8,5 @@ export class IdentityTransformer {
 		return 'Identity_Transformer_' + (id == null ? '' : id)
 	}
 }
+
+export default IdentityTransformer

@@ -6,7 +6,9 @@ import {
 	GraphQLInputObjectType,
 	GraphQLNonNull,
 	GraphQLObjectType,
-	GraphQLBoolean
+	GraphQLBoolean,
+	GraphQLInt,
+	GraphQLEnumType
 } from 'graphql'
 
 import {
@@ -89,6 +91,37 @@ export const EventParticipantType = new GraphQLObjectType({
 	}
 })
 
+
+export const TodoBodyType = new GraphQLInputObjectType({
+	name: 'TodoBodyType',
+	fields: {
+		description: {type: new GraphQLNonNull(GraphQLString)},
+		takersRequired: {type: GraphQLInt},
+		takers: {type: new GraphQLList(GraphQLID)},
+		done: {type: GraphQLBoolean}
+	}
+})
+
+export const TodoType = new GraphQLObjectType({
+	name: 'TodoType',
+	fields: {
+		_id: {type: GraphQLID},
+		creator: {type: EventParticipantType},
+		description: {type: GraphQLString},
+		takersRequired: {type: GraphQLInt},
+		takers: {type: new GraphQLList(EventParticipantType)},
+		done: {type: GraphQLBoolean}
+	}
+})
+
+export const TodoActionType = new GraphQLEnumType({
+	name: 'TodoActionType',
+	values: {
+		TAKE: {value: 'TAKE'},
+		RELEASE: {value: 'RELEASE'}
+	}
+})
+
 export const EventType = new GraphQLObjectType({
 	name: 'Event',
 	fields: {
@@ -97,7 +130,9 @@ export const EventType = new GraphQLObjectType({
 		participants: {type: new GraphQLList(EventParticipantType)},
 		time: {type: EventTimeType},
 		location: {type: EventLocationType},
-		invites: {type: new GraphQLList(EventParticipantType)}
+		invites: {type: new GraphQLList(EventParticipantType)},
+		todos: {type: new GraphQLList(TodoType)},
+		todoCount: {type: GraphQLInt}
 	}
 })
 

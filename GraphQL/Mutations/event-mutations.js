@@ -2,7 +2,10 @@ import Event from '../../Models/event'
 import User from '../../Models/user'
 import {
 	EventType,
-	EventBodyType
+	EventBodyType,
+	TodoType,
+	TodoBodyType,
+	TodoActionType
 } from '../Types/event-types'
 import {
 	GraphQLNonNull,
@@ -14,9 +17,10 @@ import {
 import { IdentityTransformer } from '../../Models/identy-transformer'
 
 const idTransformer = new IdentityTransformer()
-import { getProjection, idTransformerToEventTransformer, idTransformerToUserTransformer } from '../utils'
+import { getProjection, idTransformerToEventTransformer, idTransformerToUserTransformer, idTransformerTodoTransformer } from '../utils'
 const eventTransformer = idTransformerToEventTransformer(idTransformer)
 const userTransformer = idTransformerToUserTransformer(idTransformer)
+const todoTransformer = idTransformerTodoTransformer(idTransformer)
 
 async function inviteUsers(event, realUserIds, me) {
 	if (realUserIds.length === 0) {
@@ -197,5 +201,105 @@ export default {
 			}
 			return Boolean(nModified)
 		}
-	}
+	},
+	addTodo: {
+		type: TodoType,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			body: {
+				name: 'body',
+				type: TodoBodyType
+			}
+		},
+		async resolve(source, args) {
+			const me = User.verifyToken(args.token || source.token)
+			const eid = idTransformer.decryptId(args.eventId)
+			const todoBody = todoTransformer.decrypt(args.body)
+			todoBody.creator = me._id
+			if (!todoBody.takers) {
+				todoBody.takers = []
+			}
+			const event = await Event
+				.findOneAndUpdate(
+					{_id: eid, participants: me._id},
+					{
+						$push: {todos: todoBody},
+						$inc: {todoCount: 1}
+					},
+					{
+						new: true,
+						select: Event.selectionKeys({todos: 1, todoCount: 1})
+					}
+				)
+				.exec()
+			if (!event) {
+				throw Error("NoSuchEvent")
+			}
+			const todo = event.denormalizeUsers().todos[event.todos.length-1]
+			if (source.pubsub) {
+				source.pubsub.publish("addTodo/"+eid, todo)
+			}
+			return todoTransformer.encrypt(todo)
+		}
+	},
+	performTodoAction: {
+		type: GraphQLBoolean,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			todoId: {
+				name: 'todoId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			action: {
+				name: 'action',
+				type: new GraphQLNonNull(TodoActionType)
+			}
+		},
+		async resolve(source, args) {
+			const me = User.verifyToken(args.token || source.token)
+			const eid = idTransformer.decryptId(args.eventId)
+			const tid = idTransformer.decryptId(args.todoId)
+			const event = await Event
+				.findOne({_id: eid, participants: me._id})
+				.select({todos: 1})
+				.exec()
+			if (!event) {
+				throw Error('No such event')
+			}
+			const todo = event.todos.id(tid)
+			if (!todo) {
+				throw Error('No such todo')
+			}
+			const length = todo.takers.length
+			switch (args.action) {
+				case 'TAKE':
+					todo.takers.addToSet(me._id)
+					break
+				case 'RELEASE':
+					todo.takers.pull(me._id)
+					break
+				default: break //Never called
+			}
+			if (length == todo.takers.length) {
+				return false
+			}
+			const saved = await event.save()
+			return Boolean(saved)
+		}
+	},
+
 }

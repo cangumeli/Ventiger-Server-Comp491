@@ -36,8 +36,46 @@ export function idTransformerToUserTransformer(idTransformer) {
 	}
 }
 
+export function idTransformerTodoTransformer(idTransformer) {
+	const userTransformer = idTransformerToUserTransformer(idTransformer)
+	return {
+		encrypt(todo) {
+			if (todo.toObject) {
+				todo = todo.toObject()
+			} else {
+				todo = Object.assign({}, todo)
+			}
+			if (todo.takers) {
+				todo.takers = todo.takers.map(userTransformer.encryptUser)
+			}
+			if (todo.creator) {
+				todo.creator = userTransformer.encryptUser(todo.creator)
+			}
+			if (todo._id) {
+				todo._id = idTransformer.encryptId(todo._id)
+			}
+			return todo
+		},
+		decrypt(todo) {
+			if (todo.toObject) {
+				todo = todo.toObject()
+			} else {
+				todo = Object.assign({}, todo)
+			}
+			if (todo.takers) {
+				todo.takers = todo.takers.map(userTransformer.decryptUser)
+			}
+			if (todo._id) {
+				todo._id = idTransformer.decryptId(todo._id)
+			}
+			return todo
+		}
+	}
+}
+
 export function idTransformerToEventTransformer(idTransformer) {
 	const userTransformer = idTransformerToUserTransformer(idTransformer)
+	const todoTransformer = idTransformerTodoTransformer(idTransformer)
 	return {
 		encrypt(event) {
 			if (event == null) {
@@ -58,6 +96,9 @@ export function idTransformerToEventTransformer(idTransformer) {
 			if (event.invites) {
 				event.invites = event.invites.map(user => userTransformer.encryptUser(user))
 			}
+			if (event.todos) {
+				event.todos = event.todos.map(todoTransformer.encrypt)
+			}
 			return event
 		},
 
@@ -77,6 +118,9 @@ export function idTransformerToEventTransformer(idTransformer) {
 			}
 			if (event.invites) {
 				event.invites = event.invites.map(user => userTransformer.decryptUser(user))
+			}
+			if (event.todos) {
+				event.todos = event.todos.map(todoTransformer.decrypt)
 			}
 			return event
 		}

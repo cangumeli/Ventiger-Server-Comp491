@@ -13,6 +13,14 @@ const TimeSchema = new mongoose.Schema({
 	endTime: Date,
 })
 
+const TodoSchema = new mongoose.Schema({
+	creator: Oid,
+	description: String,
+	takers: [Oid],
+	takersRequired: {type: Number, default: 1, min: 1},
+	done: {type: Boolean, default: false}
+})
+
 const EventSchema = new mongoose.Schema({
 	title: {type: String, required: true},
 	info: String,
@@ -21,7 +29,9 @@ const EventSchema = new mongoose.Schema({
 	creator: Oid,
 	participants: [{type: Oid, ref: 'User'}],
 	invites: [{type: Oid}],
-	userInfo: Mixed // Redundant data for fast access
+	userInfo: Mixed, // Redundant data for fast access
+	todos: [TodoSchema],
+	todoCount: {type: Number, default: 0}
 })
 
 EventSchema.index({participants: 1})
@@ -53,6 +63,12 @@ EventSchema.methods.denormalizeUsers = function () {
 			//console.log(this[field])
 		}
 	})
+	if (obj.todos) {
+		obj.todos.forEach(todo => {
+			todo.creator = obj.userInfo[todo.creator] || obj.userInfo[todo.creator.toString()]
+			todo.takers = todo.takers.map(id => obj.userInfo[id] || obj.userInfo[id.toString()])
+		})
+	}
 	return obj
 }
 

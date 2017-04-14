@@ -3,6 +3,8 @@ import './db'
 import graphqlHTTP from 'express-graphql'
 import schema from './GraphQL/schema'
 import morgan from 'morgan'
+import socket from './socket'
+import pubsub from './pubsub'
 
 const app = express()
 app.use(morgan('combined'))
@@ -23,14 +25,16 @@ app.use('/api/graphql', (req, res, next) => {
 				send(code) {
 					console.log(code)
 				}
-			}
+			},
+			pubsub
 		}
 	})(req, res, next)
 })
 
 
 //Start the http server
-app.listen(PORT)
+const server = app.listen(PORT)
+socket(server, schema, pubsub)
 console.log(`App is listening port ${PORT}`)
 
 //Export the app for further use

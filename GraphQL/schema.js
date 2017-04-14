@@ -4,6 +4,7 @@ import {
 } from 'graphql'
 import userMutations from './Mutations/user-mutations'
 import eventMutations from './Mutations/event-mutations'
+import eventSubs from './Subscriptions/event-subscriptions'
 import {global as globalUser, viewer as viewerUser } from './Queries/user-queries'
 import User from '../Models/user'
 import { viewer as viewerEvent } from './Queries/event-queries'
@@ -14,6 +15,12 @@ export default new GraphQLSchema({
 		fields: {
 			...userMutations,
 			...eventMutations
+		}
+	}),
+	subscription: new GraphQLObjectType({
+		name: 'Subscription',
+		fields: {
+			...eventSubs
 		}
 	}),
 	/*query: new GraphQLObjectType({
