@@ -129,6 +129,9 @@ export default {
 				event[f] = args.body[f]
 			})
 			const saved = await event.save()
+			if (source.pubsub) {
+				source.pubsub.publish('updateEvent/'+eid, args.body)
+			}
 			return eventTransformer.encrypt(saved.denormalize())
 		}
 	},
@@ -515,7 +518,7 @@ export default {
 			return Boolean(nModified)
 		}
 	},
-	completeOrReopenPoll: {
+	completePoll: {
 		type: GraphQLBoolean,
 		args: {
 			eventId: {
@@ -529,7 +532,7 @@ export default {
 			token: {
 				name: 'token',
 				type: GraphQLString
-			},
+			}
 		},
 		async resolve(source, args) {
 			const me = User.verifyToken(args.token || source.token)
@@ -548,16 +551,16 @@ export default {
 			if (poll.creator.toString() !== me._id && !event.userInfo[me._id].admin) {
 				throw Error('UnauthorizedComplete')
 			}
-			const prev = poll.open
-			poll.open = !poll.open
-			if (poll.autoUpdateFields) {
+
+			poll.open = false
+			if (poll.autoUpdateFields && poll.autoUpdateFields.length > 0) {
 				poll.autoUpdateFields.forEach(f => {
 					event.autoUpdateFields.pull(f)
 				})
+				event.performAutoUpdate(poll)
 			}
-			event.performAutoUpdate(poll)
 			const saved = await event.save()
-			const res = saved.polls[polli].open === !prev
+			const res = saved.polls[polli].open === false
 			if (res && source.pubsub) {
 				source.pubsub.publish('completeOrReopenPoll/' + eid, {
 					pollId: pid,
