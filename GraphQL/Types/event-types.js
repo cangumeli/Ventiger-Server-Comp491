@@ -225,6 +225,7 @@ export const EventType = new GraphQLObjectType({
 export const EventInvitationType = new GraphQLObjectType({
 	name: 'EventInvitation',
 	fields: {
+		_id: {type: GraphQLID},
 		...eventBaseFields,
 		time: {type: EventTimeType},
 		location: {type: EventLocationType},
