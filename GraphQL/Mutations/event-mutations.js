@@ -562,7 +562,7 @@ export default {
 			const saved = await event.save()
 			const res = saved.polls[polli].open === false
 			if (res && source.pubsub) {
-				source.pubsub.publish('completeOrReopenPoll/' + eid, {
+				source.pubsub.publish('completePoll/' + eid, {
 					pollId: pid,
 					performer: me._id
 				})
