@@ -22,6 +22,7 @@ const eventTransformer = idTransformerToEventTransformer(idTransformer)
 const userTransformer = idTransformerToUserTransformer(idTransformer)
 
 export const viewer = {
+	// TODO: autoupdate logic for time filtering
 	events: {
 		type: new GraphQLList(EventType),
 		args: {
@@ -59,8 +60,8 @@ export const viewer = {
 				.where(timeConstraint)
 				.select(Event.selectionKeys(getProjection(info.fieldNodes)))
 				.exec()
-			//events.forEach(event => event.denormalizeUsers())
-			return events.map(event => eventTransformer.encrypt(event.denormalizeUsers()))
+			//events.forEach(event => event.denormalize())
+			return events.map(event => eventTransformer.encrypt(event.denormalize()))
 		}
 	},
 	event: {
@@ -81,7 +82,7 @@ export const viewer = {
 			if (!event) {
 				throw Error('NoSuchEvent')
 			}
-			return eventTransformer.encrypt(event.denormalizeUsers())
+			return eventTransformer.encrypt(event.denormalize())
 		}
 	},
 	eventInvitations: {

@@ -48,8 +48,8 @@ export function idTransformerTodoTransformer(idTransformer) {
 			if (todo.takers) {
 				todo.takers = todo.takers.map(userTransformer.encryptUser)
 			}
-			if (todo.creator) {
-				todo.creator = userTransformer.encryptUser(todo.creator)
+			if (todo.voters) {
+				todo.voters = userTransformer.encryptUser(todo.voters)
 			}
 			if (todo._id) {
 				todo._id = idTransformer.encryptId(todo._id)
@@ -73,11 +73,68 @@ export function idTransformerTodoTransformer(idTransformer) {
 	}
 }
 
+export function idTransformerToPollOptionTransformer(idTransformer) {
+	const userTransformer = idTransformerToUserTransformer(idTransformer)
+	function perform(pollOption, crypt){
+		if (pollOption.toObject) {
+			pollOption = pollOption.toObject()
+		} else {
+			pollOption = Object.assign({}, pollOption)
+		}
+		if (pollOption.voters) {
+			pollOption.voters = pollOption.voters.map(userTransformer[crypt+"User"])
+		}
+		if (pollOption._id) {
+			pollOption._id = idTransformer[crypt+"Id"](pollOption._id)
+		}
+		return pollOption
+	}
+	return {
+		encrypt(pollOption) {
+			return perform(pollOption, 'encrypt')
+		},
+		decrypt(pollOption) {
+			return perform(pollOption, 'decrypt')
+		}
+	}
+}
+
+export function idTransformerToPollTransformer(idTransformer) {
+	const userTransformer = idTransformerToUserTransformer(idTransformer)
+	const pollOptionTransformer = idTransformerToPollOptionTransformer(idTransformer)
+	function perform(poll, crypt){
+		if (poll.toObject) {
+			poll = poll.toObject()
+		} else {
+			poll = Object.assign({}, poll)
+		}
+		//console.log('right there ', poll)
+		if(poll.options){
+			poll.options = poll.options.map(pollOptionTransformer[crypt])
+		}
+		if (poll.creator) {
+			poll.creator = userTransformer[crypt+"User"](poll.creator)
+		}
+		if (poll._id) {
+			poll._id = idTransformer[crypt+"Id"](poll._id)
+		}
+		return poll
+	}
+	return {
+		encrypt(poll) {
+			return perform(poll, 'encrypt')
+		},
+		decrypt(poll) {
+			return perform(poll, 'decrypt')
+		}
+	}
+}
+
 export function idTransformerToEventTransformer(idTransformer) {
 	const userTransformer = idTransformerToUserTransformer(idTransformer)
 	const todoTransformer = idTransformerTodoTransformer(idTransformer)
-	return {
-		encrypt(event) {
+	const pollTransformer = idTransformerToPollTransformer(idTransformer)
+	function perform(event, crypt) {
 			if (event == null) {
 				return event
 			}
@@ -86,43 +143,31 @@ export function idTransformerToEventTransformer(idTransformer) {
 			} else {
 				event = Object.assign({}, event)
 			}
-			event._id = idTransformer.encryptId(event._id)
+			event._id = idTransformer[crypt+"Id"](event._id)
 			if (event.participants) {
-				event.participants = event.participants.map(user => userTransformer.encryptUser(user))
+				event.participants = event.participants.map(userTransformer[crypt+"User"])
 			}
 			if (event.creator) {
-				event.creator = userTransformer.encryptUser(event.creator)
+				event.creator = userTransformer[crypt+"User"](event.creator)
 			}
 			if (event.invites) {
-				event.invites = event.invites.map(user => userTransformer.encryptUser(user))
+				event.invites = event.invites.map(user => userTransformer[crypt+"User"](user))
 			}
 			if (event.todos) {
-				event.todos = event.todos.map(todoTransformer.encrypt)
+				event.todos = event.todos.map(todoTransformer[crypt])
+			}
+			if (event.polls) {
+				event.polls = event.polls.map(pollTransformer[crypt])
 			}
 			return event
-		},
+		}
 
-		decrypt(event){
-			if (event == null) {
-				return event
-			}
-			if (event._id) {
-				event = Object.assign({}, event)
-				event._id = idTransformer.decryptId(event._id)
-			}
-			if (event.participants) {
-				event.participants = event.participants.map(user => userTransformer.decryptUser(user))
-			}
-			if (event.creator) {
-				event.creator = userTransformer.decryptUser(event.creator)
-			}
-			if (event.invites) {
-				event.invites = event.invites.map(user => userTransformer.decryptUser(user))
-			}
-			if (event.todos) {
-				event.todos = event.todos.map(todoTransformer.decrypt)
-			}
-			return event
+	return {
+		encrypt(poll) {
+			return perform(poll, 'encrypt')
+		},
+		decrypt(poll) {
+			return perform(poll, 'decrypt')
 		}
 	}
 }

@@ -84,7 +84,7 @@ describe('Event API Tests', function () {
 			expect(res.errors).to.be.undefined
 			expect(res.data.createEvent).to.deep.equal({
 				...events[0],
-				creator: {
+				voters: {
 					_id: idTransformer.encryptId(savedUsers[0]._id.toString()),
 					name: savedUsers[0].name,
 					admin: true

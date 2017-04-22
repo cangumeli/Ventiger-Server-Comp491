@@ -5,7 +5,12 @@ import {
 	EventBodyType,
 	TodoType,
 	TodoBodyType,
-	TodoActionType
+	TodoActionType,
+	PollOptionInputType,
+	PollInputType,
+	PollType,
+	PollOptionType,
+	VotingActionType
 } from '../Types/event-types'
 import {
 	GraphQLNonNull,
@@ -17,10 +22,12 @@ import {
 import { IdentityTransformer } from '../../Models/identy-transformer'
 
 const idTransformer = new IdentityTransformer()
-import { getProjection, idTransformerToEventTransformer, idTransformerToUserTransformer, idTransformerTodoTransformer } from '../utils'
+import { getProjection, idTransformerToEventTransformer, idTransformerToUserTransformer, idTransformerTodoTransformer, idTransformerToPollTransformer } from '../utils'
 const eventTransformer = idTransformerToEventTransformer(idTransformer)
 const userTransformer = idTransformerToUserTransformer(idTransformer)
 const todoTransformer = idTransformerTodoTransformer(idTransformer)
+const pollTransformer = idTransformerToPollTransformer(idTransformer)
+
 
 async function inviteUsers(event, realUserIds, me) {
 	if (realUserIds.length === 0) {
@@ -65,7 +72,7 @@ export default {
 			const user = User.verifyToken(args.token || source.token)
 			const event = new Event({
 				...args.body,
-				creator: user._id,
+				voters: user._id,
 				userInfo: {
 					[user._id]: {...user, admin: true}
 				}
@@ -76,7 +83,7 @@ export default {
 			}
 			//console.log('Event ', event)
 			let saved = await event.save()
-			const transformed = eventTransformer.encrypt(saved.denormalizeUsers())
+			const transformed = eventTransformer.encrypt(saved.denormalize())
 			return transformed
 		},
 	},
@@ -141,7 +148,7 @@ export default {
 			event.userInfo[me._id] = me
 			event.markModified(`userInfo.${me._id}`)
 			const saved = await event.save()
-			return eventTransformer.encrypt(saved.denormalizeUsers())
+			return eventTransformer.encrypt(saved.denormalize())
 		}
 	},
 	rejectEventInvitation: {
@@ -159,7 +166,7 @@ export default {
 		async resolve(source, args) {
 			const me = User.verifyToken(args.token || source.token)
 			const eid = idTransformer.decryptId(args.eventId)
-			const {n, nModified } = await Event
+			const {n, nModified} = await Event
 				.update(
 					{_id: eid},
 					{
@@ -188,7 +195,7 @@ export default {
 		async resolve(source, args) {
 			const me = User.verifyToken(args.token || source.token)
 			const eid = idTransformer.decryptId(args.eventId)
-			const {n, nModified } = await Event
+			const {n, nModified} = await Event
 				.update(
 					{_id: eid},
 					{
@@ -222,7 +229,7 @@ export default {
 			const me = User.verifyToken(args.token || source.token)
 			const eid = idTransformer.decryptId(args.eventId)
 			const todoBody = todoTransformer.decrypt(args.body)
-			todoBody.creator = me._id
+			todoBody.voters = me._id
 			if (!todoBody.takers) {
 				todoBody.takers = []
 			}
@@ -242,9 +249,9 @@ export default {
 			if (!event) {
 				throw Error("NoSuchEvent")
 			}
-			const todo = event.denormalizeUsers().todos[event.todos.length-1]
+			const todo = event.denormalize().todos[event.todos.length - 1]
 			if (source.pubsub) {
-				source.pubsub.publish("addTodo/"+eid, todo)
+				source.pubsub.publish("addTodo/" + eid, todo)
 			}
 			return todoTransformer.encrypt(todo)
 		}
@@ -275,7 +282,7 @@ export default {
 			const tid = idTransformer.decryptId(args.todoId)
 			const event = await Event
 				.findOne({_id: eid, participants: me._id})
-				.select({todos: 1})
+				.select({todos: 1, userInfo: 1})
 				.exec()
 			if (!event) {
 				throw Error('No such event')
@@ -285,6 +292,7 @@ export default {
 				throw Error('No such todo')
 			}
 			const length = todo.takers.length
+			let sizeCheck = true
 			switch (args.action) {
 				case 'TAKE':
 					todo.takers.addToSet(me._id)
@@ -292,14 +300,238 @@ export default {
 				case 'RELEASE':
 					todo.takers.pull(me._id)
 					break
-				default: break //Never called
+				case 'DONE':
+					if (todo.voters.toString() == me._id || event.userInfo[me._id].admin) {
+						todo.done = true
+					} else {
+						throw Error('UnauthorizedUser')
+					}
+					sizeCheck = false
+					break
+				case 'UNDONE':
+					todo.done = false
+					sizeCheck = false
+					break
+				case 'REMOVE':
+					if (todo.voters.toString() == me._id || event.userInfo[me._id].admin) {
+						todo.remove()
+					} else {
+						throw Error('UnauthorizedUser')
+					}
+					sizeCheck = false
+					break
+				default:
+					break //Never called
 			}
-			if (length == todo.takers.length) {
+			if (sizeCheck && length == todo.takers.length) {
 				return false
+			}
+			if (source.pubsub) {
+				event.denormalize()
+				source.pubsub.publish("todoAction/" + eid, {todoId: tid, action: args.action})
 			}
 			const saved = await event.save()
 			return Boolean(saved)
+		},
+	},
+	createPoll: {
+		type: PollType,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			body: {
+				name: 'body',
+				type: new GraphQLNonNull(PollInputType)
+			}
+		},
+		async resolve(source, args) {
+			const me = User.verifyToken(args.token || source.token)
+			const eid = idTransformer.decryptId(args.eventId)
+			const poll = args.body
+			poll.creator = me._id
+			const event_ = await Event
+				.findById(eid)
+				.where('participants').eq(me._id)
+				.select(Event.selectionKeys({polls:1}))
+				.exec()
+			if (!event_) {
+				throw Error('NoSuchEvent')
+			}
+			let uconn = args.body.autoUpdateFields
+			if (uconn) {
+				uconn.forEach(field => {
+					if (event_.autoUpdateFields.some(f=>f===field)) {
+						throw Error('AlreadyConnected')
+					}
+				})
+			} else {
+				uconn = []
+			}
+			const saved = await Event
+				.findOneAndUpdate(
+					{_id: eid, participants: me._id},
+					{$push: {polls: poll, autoUpdateFields: {$each: uconn}}},
+					{new: true, select: Event.selectionKeys({polls: 1})}
+				)
+				.exec()
+			const event = saved.denormalize()
+			if (source.pubsub) {
+				source.pubsub.publish('createPoll/' + eid, poll)
+			}
+			return pollTransformer.encrypt(event.polls[event.polls.length - 1])
+		}
+	},
+	performVotingAction: {
+		type: GraphQLBoolean,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			pollId: {
+				name: 'pollId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			optionId: {
+				name: 'optionId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			action: {
+				name: 'action',
+				type: new GraphQLNonNull(VotingActionType)
+			}
+		},
+		async resolve(source, args) {
+			const me = User.verifyToken(args.token || source.token)
+			const eid = idTransformer.decryptId(args.eventId)
+			const pid = idTransformer.decryptId(args.pollId)
+			const oid = idTransformer.decryptId(args.optionId)
+			const event = await Event
+				.findById(eid)
+				.where({participants: me._id})
+				.select(Event.selectionKeys({polls: 1}))
+				.exec()
+			if (!event) {
+				throw Error('NoSuchEvent')
+			}
+			const eventObj = event.denormalize()
+			const poll = eventObj.polls.find(p => p._id.toString() === pid)
+			if (!poll) {
+				throw Error('NoSuchPoll')
+			}
+			if (!poll.open) {
+				throw Error('PollClosed')
+			}
+			const option = poll.options.find(o => o._id.toString() === oid)
+			if (!option) {
+				throw Error('NoSuchOption')
+			}
+			let update
+			switch (args.action) {
+				case 'VOTE':
+					if (!poll.multi) {
+						poll.options.forEach(o => {
+							if (o.voters.some(x => x.toString() === me._id)) {
+								throw Error('AlreadyVoted')
+							}
+						})
+					}
+					update = {$addToSet: {['pollVoters.' + pid + '.' + oid]: me._id}}
+					break
+				case 'UNVOTE':
+					update = {$pull: {['pollVoters.' + pid + '.' + oid]: me._id}}
+					break
+			}
+			const {nModified} = await Event
+				.update(
+					{_id: eid},
+					update
+				)
+				.exec()
+			// TODO: publish the autoupdate
+			if (source.pubsub) {
+				source.pubsub.publish('performVotingAction/' + eid, {
+					pollId: pid,
+					optionId: oid,
+					action: args.action,
+					performer: me._id
+				})
+			}
+			return Boolean(nModified)
+		}
+	},
+	completeOrReopenPoll: {
+		type: GraphQLBoolean,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			pollId: {
+				name: 'pollId',
+				type: new GraphQLNonNull(GraphQLID)
+			},
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+		},
+		async resolve(source, args) {
+			const me = User.verifyToken(args.token || source.token)
+			const eid = idTransformer.decryptId(args.eventId)
+			const pid = idTransformer.decryptId(args.pollId)
+			const event = await Event
+				.findById(eid)
+				.where({participants: me._id})
+				.select(Event.selectionKeys({polls: 1}))
+				.exec()
+			const polli = event.polls.findIndex(p => p._id.toString() === pid)
+			const poll = event.polls[polli]
+			if (!poll) {
+				throw Error('NoSuchPoll')
+			}
+			if (poll.creator.toString() !== me._id && !event.userInfo[me._id].admin) {
+				throw Error('UnauthorizedComplete')
+			}
+			const prev = poll.open
+			poll.open = !poll.open
+			if (poll.autoUpdateFields) {
+				poll.autoUpdateFields.forEach(f => {
+					event.autoUpdateFields.pull(f)
+				})
+			}
+			event.performAutoUpdate(poll)
+			const saved = await event.save()
+			const res = saved.polls[polli].open === !prev
+			if (res && source.pubsub) {
+				source.pubsub.publish('completeOrReopenPoll/' + eid, {
+					pollId: pid,
+					performer: me._id
+				})
+			}
+			return res
 		}
 	},
 
 }
+
+
+/*
+* TODO
+* Urgent
+* 	auto-update logic
+* 	completePoll
+* Future(?)
+* 	addPollOption
+* 	removePoll
+* */

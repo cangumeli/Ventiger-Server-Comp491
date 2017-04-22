@@ -15,6 +15,8 @@ import {
 	GraphQLDateTime
 } from 'graphql-custom-types'
 
+import Event from '../../Models/event'
+
 const timeFields = {
 	startTime: {type: GraphQLDateTime},
 	endTime: {type: GraphQLDateTime}
@@ -115,10 +117,82 @@ export const TodoType = new GraphQLObjectType({
 })
 
 export const TodoActionType = new GraphQLEnumType({
-	name: 'TodoActionType',
+	name: 'TodoAction',
 	values: {
 		TAKE: {value: 'TAKE'},
-		RELEASE: {value: 'RELEASE'}
+		RELEASE: {value: 'RELEASE'},
+		DONE: {value: 'DONE'},
+		UNDONE: {value: 'UNDONE'},
+		REMOVE: {value: 'REMOVE'}
+	}
+})
+
+export const PollOptionType = new GraphQLObjectType({
+	name: 'PollOption',
+	fields: {
+		_id: {type: GraphQLID},
+		description: {type: GraphQLString},
+		voters: {type: new GraphQLList(EventParticipantType)},
+		time: {type: EventTimeType},
+		location: {type: EventLocationType}
+	}
+})
+
+export const PollAutoUpdateConnectionEnum = new GraphQLEnumType({
+	name: 'PollAutoUpdateConnection',
+	values: {
+		location: {value: 'location'},
+		time: {value: 'time'}
+	}
+})
+
+const autoUpdateTypeValues = {}
+Event.POLL_AUTOUPDATE_TYPES.forEach(type=>{
+	autoUpdateTypeValues[type] = {[type]: {value: type}}
+})
+export const PollAutoUpdateType = new GraphQLEnumType({
+	name: 'PollAutoUpdateType',
+	values: autoUpdateTypeValues
+})
+
+export const PollType = new GraphQLObjectType({
+	name: 'Poll',
+	fields: {
+		_id: {type: GraphQLID},
+		creator: {type: EventParticipantType},
+		options: {type: new GraphQLList(PollOptionType)},
+		multi: {type: GraphQLBoolean},
+		open: {type: GraphQLBoolean},
+		autoUpdateFields: {type: new GraphQLList(GraphQLString)},
+		autoUpdateType: {type: PollAutoUpdateType}
+	}
+})
+
+export const PollOptionInputType = new GraphQLInputObjectType({
+	name: 'PollOptionBody',
+	fields: {
+		time: {type: EventTimeInputType},
+		location: {type: EventLocationInputType},
+		description: {type: new GraphQLNonNull(GraphQLString)},
+	}
+})
+
+export const PollInputType = new GraphQLInputObjectType({
+	name: 'PollBody',
+	fields: {
+		description: {type: new GraphQLNonNull(GraphQLString)},
+		options: {type: new GraphQLList(PollOptionInputType)},
+		multi: {type: GraphQLBoolean},
+		autoUpdateFields: {type: new GraphQLList(PollAutoUpdateConnectionEnum)},
+		autoUpdateType: {type: PollAutoUpdateType}
+	}
+})
+
+export const VotingActionType = new GraphQLEnumType({
+	name: 'VotingAction',
+	values: {
+		VOTE: {value: 'VOTE'},
+		UNVOTE: {value: 'UNVOTE'}
 	}
 })
 
@@ -132,7 +206,9 @@ export const EventType = new GraphQLObjectType({
 		location: {type: EventLocationType},
 		invites: {type: new GraphQLList(EventParticipantType)},
 		todos: {type: new GraphQLList(TodoType)},
-		todoCount: {type: GraphQLInt}
+		todoCount: {type: GraphQLInt},
+		polls: {type: new GraphQLList(PollType)},
+		autoUpdateFields: {type: new GraphQLList(GraphQLString)}
 	}
 })
 
