@@ -52,7 +52,7 @@ export const viewer = {
 				if (Object.keys(timeConstraint).length === 0) {
 					timeConstraint = ignoreTimeConstraint
 				} else {
-					timeConstraint = {$or: [timeConstraint, ignoreTimeConstraint]}
+					timeConstraint = {$or: [timeConstraint, ignoreTimeConstraint, {autoUpdateFields:'time'}]}
 				}
 			}
 			const events = await Event
@@ -61,7 +61,18 @@ export const viewer = {
 				.select(Event.selectionKeys(getProjection(info.fieldNodes)))
 				.exec()
 			//events.forEach(event => event.denormalize())
-			return events.map(event => eventTransformer.encrypt(event.denormalize()))
+			return events
+				.filter(event => {
+					if (!event.time) {
+						return !args.ignoreUntimed
+					}
+					if (!event.autoUpdateFields.some(c=>c==='time')) {
+						return true
+					}
+					return (!args.from || event.startTime >= args.from)
+						&& (!args.to || event.endTime <= args.to)
+				})
+				.map(event => eventTransformer.encrypt(event.denormalize()))
 		}
 	},
 	event: {
