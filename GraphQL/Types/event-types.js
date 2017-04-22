@@ -67,7 +67,6 @@ export const EventInvitationInputType = new GraphQLInputObjectType({
 })
 
 const eventBaseFields = {
-	_id: {type: GraphQLID},
 	title: {type: new GraphQLNonNull(GraphQLString)},
 	info: {type: GraphQLString}
 }
@@ -81,8 +80,18 @@ export const EventBodyType = new GraphQLInputObjectType({
 	}
 })
 
+export const EventUpdateType = new GraphQLInputObjectType({
+	name: 'EventUpdate',
+	fields: {
+		title: {type: GraphQLString},
+		time: {type: EventTimeInputType},
+		location: {type: EventLocationInputType},
+		info: {type: GraphQLString}
+	}
+})
+
 /**
- * Data Transfer Object for event participation
+ * Data Transfer Object for event participations
  * */
 export const EventParticipantType = new GraphQLObjectType({
 	name: 'EventPaticipantType',
@@ -200,6 +209,7 @@ export const EventType = new GraphQLObjectType({
 	name: 'Event',
 	fields: {
 		...eventBaseFields,
+		_id: {type: GraphQLID},
 		creator: {type: EventParticipantType},
 		participants: {type: new GraphQLList(EventParticipantType)},
 		time: {type: EventTimeType},

@@ -10,7 +10,8 @@ import {
 	PollInputType,
 	PollType,
 	PollOptionType,
-	VotingActionType
+	VotingActionType,
+	EventUpdateType
 } from '../Types/event-types'
 import {
 	GraphQLNonNull,
@@ -86,6 +87,50 @@ export default {
 			const transformed = eventTransformer.encrypt(saved.denormalize())
 			return transformed
 		},
+	},
+	updateEvent: {
+		type: EventType,
+		args: {
+			body: {
+				type: new GraphQLNonNull(EventUpdateType),
+				name: 'body'
+			},
+			token: {
+				name: 'token',
+				type: GraphQLString
+			},
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		async resolve(source, args) {
+			const me = User.verifyToken(args.token || source.token)
+			const eid = idTransformer.decryptId(args.eventId)
+			const fieldsToUpdate = Object.keys(args.body)
+			if (fieldsToUpdate.length == 0) {
+				throw Error('NoUpdateToPerform')
+			}
+			const event = await Event
+				.findById(eid)
+				.where({participants: me._id})
+				//.select(Event.selectionKeys(proj))
+				.exec()
+			if (!event) {
+				throw Error('NoSuchEvent')
+			}
+			if(!event.userInfo[me._id].admin) {
+				throw Error('NotAdmin')
+			}
+			if (fieldsToUpdate.some(f=>event.autoUpdateFields.some(af=>f===af))) {
+				throw Error('PollConnectedFieldUpdateAttempt')
+			}
+			fieldsToUpdate.forEach(f=>{
+				event[f] = args.body[f]
+			})
+			const saved = await event.save()
+			return eventTransformer.encrypt(saved.denormalize())
+		}
 	},
 	inviteToEvent: {
 		type: GraphQLBoolean,
