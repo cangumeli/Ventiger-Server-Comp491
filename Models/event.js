@@ -52,7 +52,7 @@ const EventSchema = new mongoose.Schema({
 	info: String,
 	time: TimeSchema,
 	location: LocationSchema,
-	voters: Oid,
+	creator: Oid,
 	participants: [{type: Oid, ref: 'User'}],
 	invites: [{type: Oid}],
 	userInfo: Mixed, // Redundant data for fast access
@@ -107,8 +107,8 @@ EventSchema.statics.POLL_AUTOUPDATE_TYPES = autoUpdateTypes
 
 EventSchema.methods.denormalize = function () {
 	const obj = this.toObject()
-	if (obj.voters) {
-		obj.voters = obj.userInfo[obj.voters] || this.userInfo[obj.voters.toString()]
+	if (obj.creator) {
+		obj.creator = obj.userInfo[obj.creator] || this.userInfo[obj.creator.toString()]
 	}
 	/*this.participants = this.participants.map(p => this.userInfo[p])
 	this.invites = this.invites.map(p => this.userInfo[p])*/
@@ -122,7 +122,7 @@ EventSchema.methods.denormalize = function () {
 	})
 	if (obj.todos) {
 		obj.todos.forEach(todo => {
-			todo.voters = obj.userInfo[todo.voters] || obj.userInfo[todo.voters.toString()]
+			todo.creator = obj.userInfo[todo.creator] || obj.userInfo[todo.creator.toString()]
 			todo.takers = todo.takers.map(id => obj.userInfo[id] || obj.userInfo[id.toString()])
 		})
 	}

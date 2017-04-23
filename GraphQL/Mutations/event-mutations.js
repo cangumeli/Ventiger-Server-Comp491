@@ -73,10 +73,10 @@ export default {
 			const user = User.verifyToken(args.token || source.token)
 			const event = new Event({
 				...args.body,
-				voters: user._id,
 				userInfo: {
 					[user._id]: {...user, admin: true}
-				}
+				},
+				creator: user._id
 			})
 			event.participants.push(user._id)
 			if (args.userIds) {

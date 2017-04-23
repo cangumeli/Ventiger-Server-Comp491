@@ -60,6 +60,17 @@ export const viewer = {
 				.where(timeConstraint)
 				.select(Event.selectionKeys(getProjection(info.fieldNodes)))
 				.exec()
+			console.log('Event ', events
+				.filter(event => {
+					if (!event.time) {
+						return !args.ignoreUntimed
+					}
+					if (!event.autoUpdateFields.some(c=>c==='time')) {
+						return true
+					}
+					return (!args.from || event.startTime >= args.from)
+						&& (!args.to || event.endTime <= args.to)
+				}), ' \nme ', source)
 			//events.forEach(event => event.denormalize())
 			return events
 				.filter(event => {
@@ -93,6 +104,7 @@ export const viewer = {
 			if (!event) {
 				throw Error('NoSuchEvent')
 			}
+			console.log('Creator ', eventTransformer.encrypt(event.denormalize()).creator)
 			return eventTransformer.encrypt(event.denormalize())
 		}
 	},
