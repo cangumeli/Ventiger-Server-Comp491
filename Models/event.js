@@ -14,11 +14,12 @@ const TimeSchema = new mongoose.Schema({
 })
 
 const TodoSchema = new mongoose.Schema({
-	voters: Oid,
+	creator: Oid,
 	description: String,
 	takers: [Oid],
 	takersRequired: {type: Number, default: 1, min: 1},
-	done: {type: Boolean, default: false}
+	done: {type: Boolean, default: false},
+	createdAt: {type: Date, default: Date.now}
 })
 
 const PollOptionSchema = new mongoose.Schema({
@@ -26,7 +27,7 @@ const PollOptionSchema = new mongoose.Schema({
 	description: String,
 	// Auto-update fields
 	time: TimeSchema,
-	location: LocationSchema
+	location: LocationSchema,
 })
 
 const autoUpdateTypes = ['FINISH', 'ALWAYS']
@@ -45,6 +46,7 @@ const PollSchema = new mongoose.Schema({
 		type: String,
 		enum: ['location', 'time']
 	}],
+	createdAt: {type: Date, default: Date.now}
 })
 
 const EventSchema = new mongoose.Schema({
@@ -64,6 +66,7 @@ const EventSchema = new mongoose.Schema({
 		type: String,
 		enum: ['location', 'time']
 	}],
+	createdAt: {type: Date, default: Date.now}
 })
 
 EventSchema.post('init', doc => {

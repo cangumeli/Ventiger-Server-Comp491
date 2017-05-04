@@ -59,7 +59,7 @@ export const EventLocationType = new GraphQLObjectType({
 
 
 export const EventInvitationInputType = new GraphQLInputObjectType({
-	name: 'EventInvitationInputType',
+	name: 'EventInvitationInput',
 	fields: {
 		_id: {type: new GraphQLNonNull(GraphQLID)},
 		name: {type: new GraphQLNonNull(GraphQLString)}
@@ -90,11 +90,21 @@ export const EventUpdateType = new GraphQLInputObjectType({
 	}
 })
 
+export const EventUpdateOutputType = new GraphQLObjectType({
+	name: 'EventUpdateOutput',
+	fields: {
+		_id: {type: GraphQLID},
+		title: {type: GraphQLString},
+		time: {type: EventTimeType},
+		location: {type: EventLocationType},
+		info: {type: GraphQLString}
+	}
+})
 /**
  * Data Transfer Object for event participations
  * */
 export const EventParticipantType = new GraphQLObjectType({
-	name: 'EventPaticipantType',
+	name: 'EventPaticipant',
 	fields: {
 		_id: {type: GraphQLID},
 		name: {type: GraphQLString},
@@ -104,7 +114,7 @@ export const EventParticipantType = new GraphQLObjectType({
 
 
 export const TodoBodyType = new GraphQLInputObjectType({
-	name: 'TodoBodyType',
+	name: 'TodoBody',
 	fields: {
 		description: {type: new GraphQLNonNull(GraphQLString)},
 		takersRequired: {type: GraphQLInt},
@@ -114,14 +124,15 @@ export const TodoBodyType = new GraphQLInputObjectType({
 })
 
 export const TodoType = new GraphQLObjectType({
-	name: 'TodoType',
+	name: 'Todo',
 	fields: {
 		_id: {type: GraphQLID},
 		creator: {type: EventParticipantType},
 		description: {type: GraphQLString},
 		takersRequired: {type: GraphQLInt},
 		takers: {type: new GraphQLList(EventParticipantType)},
-		done: {type: GraphQLBoolean}
+		done: {type: GraphQLBoolean},
+		createdAt: {type: GraphQLDateTime}
 	}
 })
 
@@ -133,6 +144,15 @@ export const TodoActionType = new GraphQLEnumType({
 		DONE: {value: 'DONE'},
 		UNDONE: {value: 'UNDONE'},
 		REMOVE: {value: 'REMOVE'}
+	}
+})
+
+export const TodoActionSubType = new GraphQLObjectType({
+	name: 'TodoActionSub',
+	fields: {
+		todoId: {type: GraphQLID},
+		action: {type: TodoActionType},
+		performerId: {type: GraphQLID}
 	}
 })
 
@@ -173,7 +193,8 @@ export const PollType = new GraphQLObjectType({
 		multi: {type: GraphQLBoolean},
 		open: {type: GraphQLBoolean},
 		autoUpdateFields: {type: new GraphQLList(GraphQLString)},
-		autoUpdateType: {type: PollAutoUpdateType}
+		autoUpdateType: {type: PollAutoUpdateType},
+		createdAt: {type: GraphQLDateTime}
 	}
 })
 
@@ -218,7 +239,8 @@ export const EventType = new GraphQLObjectType({
 		todos: {type: new GraphQLList(TodoType)},
 		todoCount: {type: GraphQLInt},
 		polls: {type: new GraphQLList(PollType)},
-		autoUpdateFields: {type: new GraphQLList(GraphQLString)}
+		autoUpdateFields: {type: new GraphQLList(GraphQLString)},
+		createdAt: {type: GraphQLDateTime}
 	}
 })
 

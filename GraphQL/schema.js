@@ -8,6 +8,9 @@ import eventSubs from './Subscriptions/event-subscriptions'
 import {global as globalUser, viewer as viewerUser } from './Queries/user-queries'
 import User from '../Models/user'
 import { viewer as viewerEvent } from './Queries/event-queries'
+import IdTransformer from '../Models/identy-transformer'
+const idTransformer = new IdTransformer()
+import { idTransformerToUserTransformer } from './utils'
 
 export default new GraphQLSchema({
 	mutation: new GraphQLObjectType({
@@ -44,14 +47,16 @@ export default new GraphQLSchema({
 				type: new GraphQLObjectType({
 					name: 'User',
 					fields: {
-						_id: {name: '_id', type: GraphQLID},
+						id: {name: '_id', type: GraphQLID},
+						name: {name: 'name', type: GraphQLString},
 						...viewerUser,
 						...viewerEvent
 					}
 				}),
 				resolve: (source, args) => {
 					const verified = User.verifyToken(args.token || source.token)
-					return verified
+					//source.message = 'hello'
+					return {...verified, message: 'hello', id: idTransformer.encryptId(verified._id)}
 				}
 			}
 		}

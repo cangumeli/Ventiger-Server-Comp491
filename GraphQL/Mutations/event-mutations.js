@@ -281,6 +281,7 @@ export default {
 			if (!todoBody.takers) {
 				todoBody.takers = []
 			}
+			todoBody.creator = me._id
 			const event = await Event
 				.findOneAndUpdate(
 					{_id: eid, participants: me._id},
@@ -297,6 +298,7 @@ export default {
 			if (!event) {
 				throw Error("NoSuchEvent")
 			}
+			console.log('Here ',  event.todos[event.todos.length - 1])
 			const todo = event.denormalize().todos[event.todos.length - 1]
 			if (source.pubsub) {
 				source.pubsub.publish("addTodo/" + eid, todo)
@@ -325,6 +327,7 @@ export default {
 			}
 		},
 		async resolve(source, args) {
+			console.log('Called...')
 			const me = User.verifyToken(args.token || source.token)
 			const eid = idTransformer.decryptId(args.eventId)
 			const tid = idTransformer.decryptId(args.todoId)
@@ -344,12 +347,13 @@ export default {
 			switch (args.action) {
 				case 'TAKE':
 					todo.takers.addToSet(me._id)
+					console.log('Action Take')
 					break
 				case 'RELEASE':
 					todo.takers.pull(me._id)
 					break
 				case 'DONE':
-					if (todo.voters.toString() == me._id || event.userInfo[me._id].admin) {
+					if (todo.creator.toString() == me._id || event.userInfo[me._id].admin) {
 						todo.done = true
 					} else {
 						throw Error('UnauthorizedUser')
@@ -361,7 +365,7 @@ export default {
 					sizeCheck = false
 					break
 				case 'REMOVE':
-					if (todo.voters.toString() == me._id || event.userInfo[me._id].admin) {
+					if (todo.creator.toString() == me._id || event.userInfo[me._id].admin) {
 						todo.remove()
 					} else {
 						throw Error('UnauthorizedUser')
@@ -371,14 +375,19 @@ export default {
 				default:
 					break //Never called
 			}
-			if (sizeCheck && length == todo.takers.length) {
+			console.log('Here')
+			/*if (sizeCheck && length == todo.takers.length) {
 				return false
-			}
-			if (source.pubsub) {
-				event.denormalize()
-				source.pubsub.publish("todoAction/" + eid, {todoId: tid, action: args.action})
-			}
+			}*/
+			console.log('Passed')
 			const saved = await event.save()
+			console.log('Pubsub ', source.pubsub)
+			if (source.pubsub) {
+				console.log('Entered')
+				source.pubsub.publish("performTodoAction/" + eid, saved.denormalize().todos.find(t=>t._id.toString() === tid))//{todoId: tid, action: args.action, performerId: me._id})
+				console.log('Published to ', "performTodoAction/" + eid)
+			}
+			console.log('')
 			return Boolean(saved)
 		},
 	},

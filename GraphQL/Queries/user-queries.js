@@ -126,6 +126,7 @@ export const viewer = {
 			}
 		},
 		async resolve(source, args, context, info) {
+			console.log('From source ', source.message)
 			args = decryptUserId(args)
 			const projection = getProjection(info.fieldNodes)
 			let query = User.findById(source._id)
