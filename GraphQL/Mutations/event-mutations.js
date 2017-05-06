@@ -438,10 +438,11 @@ export default {
 				)
 				.exec()
 			const event = saved.denormalize()
+			const savedPoll = event.polls[event.polls.length-1]
 			if (source.pubsub) {
-				source.pubsub.publish('createPoll/' + eid, poll)
+				source.pubsub.publish('createPoll/' + eid, savedPoll)
 			}
-			return pollTransformer.encrypt(event.polls[event.polls.length - 1])
+			return pollTransformer.encrypt(savedPoll)
 		}
 	},
 	performVotingAction: {

@@ -194,7 +194,8 @@ export const PollType = new GraphQLObjectType({
 		open: {type: GraphQLBoolean},
 		autoUpdateFields: {type: new GraphQLList(GraphQLString)},
 		autoUpdateType: {type: PollAutoUpdateType},
-		createdAt: {type: GraphQLDateTime}
+		createdAt: {type: GraphQLDateTime},
+		title: {type: GraphQLString}
 	}
 })
 
@@ -203,14 +204,14 @@ export const PollOptionInputType = new GraphQLInputObjectType({
 	fields: {
 		time: {type: EventTimeInputType},
 		location: {type: EventLocationInputType},
-		description: {type: new GraphQLNonNull(GraphQLString)},
+		description: {type: GraphQLString},
 	}
 })
 
 export const PollInputType = new GraphQLInputObjectType({
 	name: 'PollBody',
 	fields: {
-		description: {type: new GraphQLNonNull(GraphQLString)},
+		title: {type: new GraphQLNonNull(GraphQLString)},
 		options: {type: new GraphQLList(PollOptionInputType)},
 		multi: {type: GraphQLBoolean},
 		autoUpdateFields: {type: new GraphQLList(PollAutoUpdateConnectionEnum)},

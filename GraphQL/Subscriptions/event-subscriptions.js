@@ -2,19 +2,20 @@ import {
 	GraphQLNonNull,
 	GraphQLID,
 	GraphQLString,
-	GraphQLList
+	GraphQLList,
 } from 'graphql'
 
 import {
 	EventUpdateOutputType,
 	TodoType,
-	TodoActionSubType
+	PollType
 } from '../Types/event-types'
 
 import {
 	idTransformerTodoTransformer,
 	idTransformerToEventTransformer,
-	idTransformerToUserTransformer
+	idTransformerToUserTransformer,
+	idTransformerToPollTransformer
 } from '../utils'
 
 import IdTransformer from '../../Models/identy-transformer'
@@ -22,6 +23,7 @@ const idTransformer = new IdTransformer()
 const eventTransformer = idTransformerToEventTransformer(idTransformer)
 const userTransformer = idTransformerToUserTransformer(idTransformer)
 const todoTransformer = idTransformerTodoTransformer(idTransformer)
+const pollTransformer = idTransformerToPollTransformer(idTransformer)
 
 function saveChannelNames(source, sn, cn, ucn) {
 	console.log('scn', source.userChannelNames)
@@ -92,12 +94,29 @@ export default {
 			}
 		},
 		resolve(source, args) {
-			const eid = idTransformer.decryptId(args.eventId)
 			if (source.dataPublished && source.dataPublished.performTodoActionSub) {
 				console.log('Todo Sub Data ', source.dataPublished.performTodoActionSub)
 				return todoTransformer.encrypt(source.dataPublished.performTodoActionSub)
 			}
+			const eid = idTransformer.decryptId(args.eventId)
 			saveChannelNames(source, 'performTodoActionSub', 'performTodoAction/'+eid, 'performTodoAction/'+args.eventId)
+			return null
+		}
+	},
+	createPollSub: {
+		type: PollType,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		resolve(source, args) {
+			if (source.dataPublished && source.dataPublished.createPollSub) {
+				return pollTransformer.encrypt(source.dataPublished.createPollSub)
+			}
+			const eid = idTransformer.decryptId(args.eventId)
+			saveChannelNames(source, 'createPollSub', 'createPoll/' + eid, 'createPoll/' + args.eventId)
 			return null
 		}
 	}
