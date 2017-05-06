@@ -9,7 +9,8 @@ import {
 	EventUpdateOutputType,
 	TodoType,
 	PollType,
-	VotingActionSubType
+	VotingActionSubType,
+	PollCompleteSubType
 } from '../Types/event-types'
 
 import {
@@ -140,6 +141,25 @@ export default {
 			}
 			const eid = idTransformer.decryptId(args.eventId)
 			saveChannelNames(source, 'performVotingActionSub', 'performVotingAction/' + eid, 'performVotingAction/' + args.eventId)
+			return null
+		}
+	},
+	completePollSub: {
+		type: PollCompleteSubType,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		resolve(source, args) {
+			if (source.dataPublished && source.dataPublished.completePollSub) {
+				const res =  source.dataPublished.completePollSub
+				res.pollId = idTransformer.encryptId(res.pollId)
+				return res
+			}
+			const eid = idTransformer.decryptId(args.eventId)
+			saveChannelNames(source, 'completePollSub', 'completePoll/' + eid, 'completePoll/' + args.eventId)
 			return null
 		}
 	}

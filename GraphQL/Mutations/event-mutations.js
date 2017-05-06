@@ -586,15 +586,18 @@ export default {
 			const saved = await event.save()
 			const res = saved.polls[polli].open === false
 			if (res && source.pubsub) {
+				const updateToSend = {}
+				poll.autoUpdateFields.forEach(f => {
+					updateToSend[f] = saved[f]
+				})
 				source.pubsub.publish('completePoll/' + eid, {
 					pollId: pid,
-					performer: me._id
+					update: updateToSend
 				})
 			}
 			return res
 		}
-	},
-
+	}
 }
 
 

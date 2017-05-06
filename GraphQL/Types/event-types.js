@@ -219,6 +219,15 @@ export const PollInputType = new GraphQLInputObjectType({
 	}
 })
 
+
+export const PollCompleteSubType = new GraphQLObjectType({
+	name: 'PollCompleteSubType',
+	fields: {
+		pollId: {type: GraphQLID},
+		update: {type: PollOptionType}
+	}
+})
+
 export const VotingActionType = new GraphQLEnumType({
 	name: 'VotingAction',
 	values: {
