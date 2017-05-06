@@ -227,6 +227,18 @@ export const VotingActionType = new GraphQLEnumType({
 	}
 })
 
+export const VotingActionSubType = new GraphQLObjectType({
+	name: 'VotingActionSub',
+	fields: {
+		pollId: {type: GraphQLID},
+		optionId: {type: GraphQLID},
+		action: {type: VotingActionType},
+		performer: {type: EventParticipantType},
+		autoUpdate: {type: PollOptionType},
+		fieldsToUnset: {type: new GraphQLList(PollAutoUpdateConnectionEnum)}
+	}
+})
+
 export const EventType = new GraphQLObjectType({
 	name: 'Event',
 	fields: {

@@ -510,22 +510,36 @@ export default {
 					update = {$pull: {['pollVoters.' + pid + '.' + oid]: me._id}}
 					break
 			}
-			const {nModified} = await Event
-				.update(
-					{_id: eid},
-					update
+			const upEvent = await Event
+				.findByIdAndUpdate(
+					eid,
+					update,
+					{new: true, select: Event.selectionKeys({polls: 1})}
 				)
 				.exec()
-			// TODO: publish the autoupdate
+			if (!upEvent) {
+				return false
+			}
 			if (source.pubsub) {
+				let autoUpdate
+				let fieldsToUnset = []
+				if (poll.autoUpdateType == 'ALWAYS') {
+					autoUpdate = upEvent.performAutoUpdate(poll)
+					// Tie nullification
+					if (!autoUpdate) {
+						fieldsToUnset = poll.autoUpdateFields.filter(f => Boolean(event[f]))
+					}
+				}
 				source.pubsub.publish('performVotingAction/' + eid, {
 					pollId: pid,
 					optionId: oid,
 					action: args.action,
-					performer: me._id
+					performer: me,
+					autoUpdate,
+					fieldsToUnset
 				})
 			}
-			return Boolean(nModified)
+			return true
 		}
 	},
 	completePoll: {

@@ -150,11 +150,18 @@ EventSchema.methods.performAutoUpdate = function (poll) {
 			maxId = oid
 		}
 	})
-	if (maxId) {
+	const tie = Object.keys(votes).filter(oid => votes[oid].length === maxVote).length > 1
+	if (tie) { //Explicit nullification for find + save uses
+		poll.autoUpdateFields.forEach(f => {
+			this[f] = undefined
+		})
+	}
+	else if (maxId) {
 		const winner = poll.options.find(o=>o._id.toString() === maxId.toString())
 		poll.autoUpdateFields.forEach(f => {
 			this[f] = winner[f]
 		})
+		return winner
 	}
 }
 
