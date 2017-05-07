@@ -15,6 +15,9 @@ import { getProjection, encryptChat } from '../utils'
 const idTransformer = new IdentityTransformer()
 
 function indexMessages(chatObject, start) {
+	if (!chatObject.messages) {
+		return
+	}
 	let startIndex = start || 0
 	chatObject.messages.forEach(m => {
 		m.index = startIndex++
@@ -45,7 +48,9 @@ export const viewer = {
 				.find({eventId: eid})
 				.select({...proj, messageInc: 1})
 				.exec()
+			console.log('Chats ', chats)
 			const res = chats.map(chat => encryptChat(idTransformer, chat))
+			console.log('Transformed chats ', res)
 			res.forEach(indexMessages)
 			return res
 		}
