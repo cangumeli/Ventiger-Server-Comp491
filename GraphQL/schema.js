@@ -4,20 +4,24 @@ import {
 } from 'graphql'
 import userMutations from './Mutations/user-mutations'
 import eventMutations from './Mutations/event-mutations'
+import eventChatMutations from './Mutations/event-chat-mutations'
 import eventSubs from './Subscriptions/event-subscriptions'
 import {global as globalUser, viewer as viewerUser } from './Queries/user-queries'
-import User from '../Models/user'
 import { viewer as viewerEvent } from './Queries/event-queries'
+import { viewer as viewerEventChat } from './Queries/event-chat-queries'
+import User from '../Models/user'
 import IdTransformer from '../Models/identy-transformer'
+
 const idTransformer = new IdTransformer()
-import { idTransformerToUserTransformer } from './utils'
+
 
 export default new GraphQLSchema({
 	mutation: new GraphQLObjectType({
 		name: 'Mutation',
 		fields: {
 			...userMutations,
-			...eventMutations
+			...eventMutations,
+			...eventChatMutations
 		}
 	}),
 	subscription: new GraphQLObjectType({
@@ -50,7 +54,8 @@ export default new GraphQLSchema({
 						id: {name: '_id', type: GraphQLID},
 						name: {name: 'name', type: GraphQLString},
 						...viewerUser,
-						...viewerEvent
+						...viewerEvent,
+						...viewerEventChat
 					}
 				}),
 				resolve: (source, args) => {
