@@ -6,6 +6,7 @@ import userMutations from './Mutations/user-mutations'
 import eventMutations from './Mutations/event-mutations'
 import eventChatMutations from './Mutations/event-chat-mutations'
 import eventSubs from './Subscriptions/event-subscriptions'
+import eventChatSubs from './Subscriptions/event-chat-subsciptions'
 import {global as globalUser, viewer as viewerUser } from './Queries/user-queries'
 import { viewer as viewerEvent } from './Queries/event-queries'
 import { viewer as viewerEventChat } from './Queries/event-chat-queries'
@@ -27,7 +28,8 @@ export default new GraphQLSchema({
 	subscription: new GraphQLObjectType({
 		name: 'Subscription',
 		fields: {
-			...eventSubs
+			...eventSubs,
+			...eventChatSubs
 		}
 	}),
 	/*query: new GraphQLObjectType({

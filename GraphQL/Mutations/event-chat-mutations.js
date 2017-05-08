@@ -16,6 +16,7 @@ import {
 	GraphQLBoolean
 } from 'graphql'
 import { IdentityTransformer } from '../../Models/identy-transformer'
+import { encryptMessage } from '../utils'
 const idTransformer = new IdentityTransformer()
 
 export default {
@@ -42,6 +43,9 @@ export default {
 			chat.generateAccessCode()
 			const saved = await chat.save()
 			const res = saved.toObject()
+			if (source.pubsub) {
+				source.pubsub.publish('createChat/' + eid, {chat: res})
+			}
 			res._id = idTransformer.encryptId(res._id.toString())
 			return res
 		}
@@ -75,10 +79,15 @@ export default {
 				throw Error('NoSuchChat')
 			}
 			const message = chat.messages[chat.messages.length-1].toObject()
-			message.sender = idTransformer.encryptId(message.sender.toString())
-			message._id = idTransformer.encryptId(message._id.toString())
 			message.index = chat.messageInc - 1
-			return message
+			if (source.pubsub) {
+				source.pubsub.publish('sendMessage/' + cid, message)
+				source.pubsub.publish('messageInc/' + cid, {messageInc: chat.messageInc})
+			}
+			return encryptMessage(idTransformer, message)
+			/*message.sender = idTransformer.encryptId(message.sender.toString())
+			message._id = idTransformer.encryptId(message._id.toString())
+			return message*/
 		}
 	},
 
@@ -115,6 +124,9 @@ export default {
 					}
 				)
 				.exec()
+			if (nModified && source.pubsub) {
+				source.pubsub.publish('removeMessage/'+cid, {index: i})
+			}
 			return Boolean(nModified)
 		}
 	}

@@ -38,6 +38,7 @@ function saveChannelNames(source, sn, cn, ucn) {
 	}
 }
 
+// TODO: consider event membership control
 export default {
 	updateEventSub: {
 		type: EventUpdateOutputType,
@@ -162,5 +163,6 @@ export default {
 			saveChannelNames(source, 'completePollSub', 'completePoll/' + eid, 'completePoll/' + args.eventId)
 			return null
 		}
-	}
+	},
+	// TODO: add participant subscription
 }

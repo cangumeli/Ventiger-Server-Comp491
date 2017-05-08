@@ -172,6 +172,17 @@ export function idTransformerToEventTransformer(idTransformer) {
 	}
 }
 
+export function encryptMessage(idTransformer, m) {
+	const mres = {...m}//.toObject()
+	if (mres._id) {
+		mres._id = idTransformer.encryptId(mres._id)
+	}
+	if (mres.sender) {
+		mres.sender = idTransformer.encryptId(mres.sender)
+	}
+	return mres
+}
+
 export function encryptChat(idTransformer, chat) {
 	const res = chat.toObject && chat.toObject() || chat
 	Array.from(['_id', 'eventId']).forEach(f => {
@@ -180,16 +191,7 @@ export function encryptChat(idTransformer, chat) {
 		}
 	})
 	if (res.messages) {
-		res.messages = res.messages.map(m => {
-			const mres = {...m}//.toObject()
-			if (mres._id) {
-				mres._id = idTransformer.encryptId(mres._id)
-			}
-			if (mres.sender) {
-				mres.sender = idTransformer.encryptId(mres.sender)
-			}
-			return mres
-		})
+		res.messages = res.messages.map(m => encryptMessage(idTransformer, m))
 	}
 	return res
 }
