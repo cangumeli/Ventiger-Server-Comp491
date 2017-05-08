@@ -196,6 +196,9 @@ export default {
 			event.userInfo[me._id] = me
 			event.markModified(`userInfo.${me._id}`)
 			const saved = await event.save()
+			if (source.pubsub) {
+				source.pubsub.publish('acceptEventInvitation/' + eid, saved.userInfo[me._id])
+			}
 			return eventTransformer.encrypt(saved.denormalize())
 		}
 	},

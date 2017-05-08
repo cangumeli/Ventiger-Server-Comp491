@@ -10,7 +10,8 @@ import {
 	TodoType,
 	PollType,
 	VotingActionSubType,
-	PollCompleteSubType
+	PollCompleteSubType,
+	EventParticipantType
 } from '../Types/event-types'
 
 import {
@@ -164,5 +165,20 @@ export default {
 			return null
 		}
 	},
-	// TODO: add participant subscription
+	acceptEventInvitationSub: {
+		type: EventParticipantType,
+		args: {
+			eventId: {
+				name: 'eventId',
+				type: new GraphQLNonNull(GraphQLID)
+			}
+		},
+		async resolve(source, args) {
+			if (source.dataPublished && source.dataPublished.acceptEventInvitationSub) {
+				return userTransformer.encryptUser(source.dataPublished.acceptEventInvitationSub)
+			}
+			const eid = idTransformer.decryptId(args.eventId)
+			saveChannelNames(source, 'acceptEventInvitationSub', 'acceptEventInvitation/' + eid, 'acceptEventInvitation/' + args.eventId)
+		}
+	}
 }
