@@ -74,12 +74,16 @@ export const viewer = {
 			limit: {
 				name: 'limit',
 				type: new GraphQLNonNull(GraphQLInt)
+			},
+			start: {
+				name: 'start',
+				type: GraphQLInt
 			}
 		},
 		async resolve(source, args, _, info) {
 			const cid = idTransformer.decryptId(args.chatId)
 			const proj = getProjection(info.fieldNodes)
-			const sliceStart = -Math.abs(args.negativeOffset || 0) - args.limit
+			const sliceStart = args.start || (-Math.abs(args.negativeOffset || 0) - args.limit)
 			const chat = await EventChat
 				.findById(cid)
 				.where({accessCode: args.accessCode})
@@ -89,7 +93,10 @@ export const viewer = {
 				throw Error('NoSuchChat')
 			}
 			const chatObject = chat.toObject()
-			indexMessages(chatObject, chat.messageInc + sliceStart)
+			console.log('Slice start ', sliceStart)
+			console.log('Message inc ', chat.messageInc)
+			indexMessages(chatObject, Math.max(0, chat.messageInc + sliceStart))
+			console.log('Indexed messages ', chatObject.messages)
 			return encryptChat(idTransformer, chatObject)
 		}
 	}
