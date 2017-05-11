@@ -66,6 +66,15 @@ export const EventInvitationInputType = new GraphQLInputObjectType({
 	}
 })
 
+export const EventKind = new GraphQLEnumType({
+	name: 'EventKind',
+	values: {
+		PRIVATE: {value: 'PRIVATE'},
+		FRIENDS: {value: 'FRIENDS'},
+		EVERYONE: {value: 'EVERYONE'},
+	}
+})
+
 const eventBaseFields = {
 	title: {type: new GraphQLNonNull(GraphQLString)},
 	info: {type: GraphQLString}
@@ -76,7 +85,8 @@ export const EventBodyType = new GraphQLInputObjectType({
 	fields: {
 		...eventBaseFields,
 		time: {type: EventTimeInputType},
-		location: {type: EventLocationInputType}
+		location: {type: EventLocationInputType},
+		visibility: {type: EventKind}
 	}
 })
 
@@ -262,7 +272,8 @@ export const EventType = new GraphQLObjectType({
 		todoCount: {type: GraphQLInt},
 		polls: {type: new GraphQLList(PollType)},
 		autoUpdateFields: {type: new GraphQLList(GraphQLString)},
-		createdAt: {type: GraphQLDateTime}
+		createdAt: {type: GraphQLDateTime},
+		//visibility:{type: EventKind}
 	}
 })
 

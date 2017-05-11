@@ -1,4 +1,5 @@
 import Event from '../../Models/event'
+import {PublicToEnum} from '../../Models/public-event'
 import User from '../../Models/user'
 import {
 	EventType,
@@ -20,10 +21,16 @@ import {
 	GraphQLID,
 	GraphQLList,
 } from 'graphql'
-import { IdentityTransformer } from '../../Models/identy-transformer'
+import {IdentityTransformer} from '../../Models/identy-transformer'
 
 const idTransformer = new IdentityTransformer()
-import { getProjection, idTransformerToEventTransformer, idTransformerToUserTransformer, idTransformerTodoTransformer, idTransformerToPollTransformer } from '../utils'
+import {
+	getProjection,
+	idTransformerToEventTransformer,
+	idTransformerToUserTransformer,
+	idTransformerTodoTransformer,
+	idTransformerToPollTransformer
+} from '../utils'
 const eventTransformer = idTransformerToEventTransformer(idTransformer)
 const userTransformer = idTransformerToUserTransformer(idTransformer)
 const todoTransformer = idTransformerTodoTransformer(idTransformer)
@@ -71,7 +78,21 @@ export default {
 		},
 		async resolve(source, args, _, info) {
 			const user = User.verifyToken(args.token || source.token)
-			const event = new Event({
+			const {body} = args
+
+
+			switch (body.visibility) {
+				case 'EVERYONE':
+				case 'FRIENDS':
+					body.kind = 'PublicEvent'
+					body.publicTo = PublicToEnum[body.kind]
+					break
+				case 'PRIVATE':
+				default:
+					body.kind = null
+			}
+			const EventCreator = Event.model(body.kind)
+			const event = new EventCreator({
 				...args.body,
 				userInfo: {
 					[user._id]: {...user, admin: true}
@@ -119,18 +140,18 @@ export default {
 			if (!event) {
 				throw Error('NoSuchEvent')
 			}
-			if(!event.userInfo[me._id].admin) {
+			if (!event.userInfo[me._id].admin) {
 				throw Error('NotAdmin')
 			}
-			if (fieldsToUpdate.some(f=>event.autoUpdateFields.some(af=>f===af))) {
+			if (fieldsToUpdate.some(f => event.autoUpdateFields.some(af => f === af))) {
 				throw Error('PollConnectedFieldUpdateAttempt')
 			}
-			fieldsToUpdate.forEach(f=>{
+			fieldsToUpdate.forEach(f => {
 				event[f] = args.body[f]
 			})
 			const saved = await event.save()
 			if (source.pubsub) {
-				source.pubsub.publish('updateEvent/'+eid, args.body)
+				source.pubsub.publish('updateEvent/' + eid, args.body)
 			}
 			return eventTransformer.encrypt(saved.denormalize())
 		}
@@ -301,7 +322,7 @@ export default {
 			if (!event) {
 				throw Error("NoSuchEvent")
 			}
-			console.log('Here ',  event.todos[event.todos.length - 1])
+			console.log('Here ', event.todos[event.todos.length - 1])
 			const todo = event.denormalize().todos[event.todos.length - 1]
 			if (source.pubsub) {
 				source.pubsub.publish("addTodo/" + eid, todo)
@@ -380,14 +401,14 @@ export default {
 			}
 			console.log('Here')
 			/*if (sizeCheck && length == todo.takers.length) {
-				return false
-			}*/
+			 return false
+			 }*/
 			console.log('Passed')
 			const saved = await event.save()
 			console.log('Pubsub ', source.pubsub)
 			if (source.pubsub) {
 				console.log('Entered')
-				source.pubsub.publish("performTodoAction/" + eid, saved.denormalize().todos.find(t=>t._id.toString() === tid))//{todoId: tid, action: args.action, performerId: me._id})
+				source.pubsub.publish("performTodoAction/" + eid, saved.denormalize().todos.find(t => t._id.toString() === tid))//{todoId: tid, action: args.action, performerId: me._id})
 				console.log('Published to ', "performTodoAction/" + eid)
 			}
 			console.log('')
@@ -418,7 +439,7 @@ export default {
 			const event_ = await Event
 				.findById(eid)
 				.where('participants').eq(me._id)
-				.select(Event.selectionKeys({polls:1}))
+				.select(Event.selectionKeys({polls: 1}))
 				.exec()
 			if (!event_) {
 				throw Error('NoSuchEvent')
@@ -426,7 +447,7 @@ export default {
 			let uconn = args.body.autoUpdateFields
 			if (uconn) {
 				uconn.forEach(field => {
-					if (event_.autoUpdateFields.some(f=>f===field)) {
+					if (event_.autoUpdateFields.some(f => f === field)) {
 						throw Error('AlreadyConnected')
 					}
 				})
@@ -441,7 +462,7 @@ export default {
 				)
 				.exec()
 			const event = saved.denormalize()
-			const savedPoll = event.polls[event.polls.length-1]
+			const savedPoll = event.polls[event.polls.length - 1]
 			if (source.pubsub) {
 				source.pubsub.publish('createPoll/' + eid, savedPoll)
 			}
@@ -605,11 +626,11 @@ export default {
 
 
 /*
-* TODO
-* Urgent
-* 	auto-update logic
-* 	completePoll
-* Future(?)
-* 	addPollOption
-* 	removePoll
-* */
+ * TODO
+ * Urgent
+ * 	auto-update logic
+ * 	completePoll
+ * Future(?)
+ * 	addPollOption
+ * 	removePoll
+ * */

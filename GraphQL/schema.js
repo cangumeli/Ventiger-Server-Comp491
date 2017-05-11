@@ -9,6 +9,7 @@ import eventSubs from './Subscriptions/event-subscriptions'
 import eventChatSubs from './Subscriptions/event-chat-subsciptions'
 import {global as globalUser, viewer as viewerUser } from './Queries/user-queries'
 import { viewer as viewerEvent } from './Queries/event-queries'
+import {viewer as viewerPublicEvent} from './Queries/public-event-queries'
 import { viewer as viewerEventChat } from './Queries/event-chat-queries'
 import User from '../Models/user'
 import IdTransformer from '../Models/identy-transformer'
@@ -57,7 +58,9 @@ export default new GraphQLSchema({
 						name: {name: 'name', type: GraphQLString},
 						...viewerUser,
 						...viewerEvent,
-						...viewerEventChat
+						...viewerEventChat,
+						...viewerEvent,
+						...viewerPublicEvent
 					}
 				}),
 				resolve: (source, args) => {
