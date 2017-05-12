@@ -88,8 +88,10 @@ export default {
 					body.publicTo = PublicToEnum[body.kind]
 					break
 				case 'PRIVATE':
+					body.kind = 'Event'
+					break
 				default:
-					body.kind = null
+					body.kind = 'Event'
 			}
 			const EventCreator = Event.model(body.kind)
 			const event = new EventCreator({
